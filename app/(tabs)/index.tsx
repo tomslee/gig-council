@@ -29,24 +29,24 @@ export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
 
 export default function Index() {
   const [showAppOptions, setShowAppOptions] = useState<boolean>(false);
-  const [todos, setTodos] = useState<any[]>([]);
-  const [todo, setTodo] = useState('');
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [assignment, setAssignment] = useState('');
 
   /*
-  const addTodo = async () => {
+  const addAssignment = async () => {
     // TODO
-    alert(todo);
+    alert(assignment);
   };
   */
 
-  const addTodo = async () => {
+  const addAssignment = async () => {
     try {
       const docRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'), {
-        title: todo,
+        description: assignment,
         done: false
       });
-      setTodo('');
-      console.log('Document written with ID: ', docRef.id);
+      console.log('Document written with ID: ', docRef.id, ' and description ', assignment);
+      setAssignment('');
     } catch (e) {
       console.error('Error adding document: ', e);
     }
@@ -69,11 +69,11 @@ export default function Index() {
       <View style={styles.form}>
         <TextInput
           style={styles.input}
-          placeholder="Add a new work category"
-          onChangeText={(text: string) => setTodo(text)}
-          value={todo}
+          placeholder="Add a new work assignment"
+          onChangeText={(text: string) => setAssignment(text)}
+          value={assignment}
         />
-        <Button theme="primary" label="Add work category" onPress={addTodo} />
+        <Button theme="primary" label="Add assignment" onPress={addAssignment} />
       </View>
     </View>
   );
@@ -117,8 +117,8 @@ const styles = StyleSheet.create({
   },
 });
 
-export interface Todo {
+export interface Assignment {
   done: boolean;
   id: string;
-  title: string;
+  description: string;
 }
