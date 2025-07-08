@@ -1,28 +1,54 @@
 import Button from '@/components/Button';
-import CircleButton from '@/components/CircleButton';
-import IconButton from '@/components/IconButton';
-import * as ImagePicker from 'expo-image-picker';
+import { collection, addDoc } from "firebase/firestore";
 import { useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { View, StyleSheet, TextInput } from 'react-native';
 
-const PlaceholderImage = require('@/assets/images/background-image.png');
+// Import the functions you need from the SDKs you need
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBau3dXFlmkCcYQxLnz1TGSgUEw3BuH-nY",
+  authDomain: "gig-council.firebaseapp.com",
+  projectId: "gig-council",
+  storageBucket: "gig-council.firebasestorage.app",
+  messagingSenderId: "352321490111",
+  appId: "1:352321490111:web:49a7d8acc3f9bc11c50a0a"
+};
+
+// Initialize Firebase
+export const FIREBASE_APP = initializeApp(firebaseConfig);
+export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
+export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
+
 
 export default function Index() {
-  const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
   const [showAppOptions, setShowAppOptions] = useState<boolean>(false);
+  const [todos, setTodos] = useState<any[]>([]);
+  const [todo, setTodo] = useState('');
 
-  const pickImageAsync = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 1,
-    });
+  /*
+  const addTodo = async () => {
+    // TODO
+    alert(todo);
+  };
+  */
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-      setShowAppOptions(true);
-    } else {
-      alert('You did not select any image.');
+  const addTodo = async () => {
+    try {
+      const docRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'), {
+        title: todo,
+        done: false
+      });
+      setTodo('');
+      console.log('Document written with ID: ', docRef.id);
+    } catch (e) {
+      console.error('Error adding document: ', e);
     }
   };
 
@@ -40,38 +66,42 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.textContainer}>
-        <Text style={styles.baseText}>Text in a text container</Text>
+      <View style={styles.form}>
+        <TextInput
+          style={styles.input}
+          placeholder="Add a new work category"
+          onChangeText={(text: string) => setTodo(text)}
+          value={todo}
+        />
+        <Button theme="primary" label="Add work category" onPress={addTodo} />
       </View>
-      {showAppOptions ? (
-        <View style={styles.optionsContainer}>
-          <View style={styles.optionsRow}>
-            <IconButton icon="refresh" label="Reset" onPress={onReset} />
-            <CircleButton onPress={onAddSticker} />
-            <IconButton icon="save-alt" label="Save" onPress={onSaveImageAsync} />
-          </View>
-        </View>
-      ) : (
-        <View style={styles.footerContainer}>
-          <Button theme="primary" label="Add a time entry" onPress={pickImageAsync} />
-          <Button label="Use this photo" onPress={() => setShowAppOptions(true)} />
-        </View>
-      )}
     </View>
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
+    marginHorizontal: 20,
     flex: 1,
     backgroundColor: '#25292e',
+  },
+  form: {
+    marginVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    backgroundColor: '#fff'
   },
   textContainer: {
     flex: 1,
     backgroundColor: 'white',
-  },
-  baseText: {
-    fontFamily: "Cochin",
   },
   footerContainer: {
     flex: 1 / 3,
@@ -86,3 +116,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 });
+
+export interface Todo {
+  done: boolean;
+  id: string;
+  title: string;
+}

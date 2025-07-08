@@ -11,7 +11,8 @@
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "/.GoogleService-Info.plist",
-      "package": "net.tomslee.gigcouncil"
+      "package": "net.tomslee.gigcouncil",
+      "bundleIdentifier": "net.tomslee.gigcouncil"
     },
     "android": {
       "adaptiveIcon": {

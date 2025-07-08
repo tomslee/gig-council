@@ -32,7 +32,16 @@ export default function TabLayout() {
                 options={{
                     title: 'Add',
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} color={color} size={24} />
+                        <Ionicons name={focused ? 'add-circle-sharp' : 'add-circle-outline'} color={color} size={24} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="report"
+                options={{
+                    title: 'Report',
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? 'document-text-sharp' : 'document-text-outline'} color={color} size={24} />
                     ),
                 }}
             />
@@ -41,7 +50,7 @@ export default function TabLayout() {
                 options={{
                     title: 'About',
                     tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? 'information-circle' : 'information-circle-outline'} color={color} size={24} />
+                        <Ionicons name={focused ? 'information-circle-sharp' : 'information-circle-outline'} color={color} size={24} />
                     ),
                 }}
             />
