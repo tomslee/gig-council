@@ -16,11 +16,9 @@ export default function AddScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#65696e',
         justifyContent: 'center',
         alignItems: 'center',
     },
     text: {
-        color: '#ff2',
     },
 });

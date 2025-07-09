@@ -38,10 +38,11 @@ const styles = StyleSheet.create({
         width: 320,
         height: 68,
         marginHorizontal: 20,
+        alignSelf: 'center',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 3,
-        backgroundColor: '#59f',
+        backgroundColor: '#ddd',
     },
     button: {
         borderRadius: 10,

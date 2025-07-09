@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import TimePicker from '@/components/TimePicker';
 import { collection, addDoc } from "firebase/firestore";
 import { useState } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
@@ -29,24 +30,24 @@ export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
 
 export default function Index() {
   const [showAppOptions, setShowAppOptions] = useState<boolean>(false);
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [assignment, setAssignment] = useState('');
+  // const [assignments, setAssignments] = useState<any[]>([]);
+  const [assignment_description, setAssignmentDescription] = useState('');
 
   /*
   const addAssignment = async () => {
     // TODO
-    alert(assignment);
+    alert(assignment_description);
   };
   */
 
   const addAssignment = async () => {
     try {
       const docRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'), {
-        description: assignment,
+        description: assignment_description,
         done: false
       });
-      console.log('Document written with ID: ', docRef.id, ' and description ', assignment);
-      setAssignment('');
+      console.log('Document written with ID: ', docRef.id, ' and description ', assignment_description);
+      setAssignmentDescription('');
     } catch (e) {
       console.error('Error adding document: ', e);
     }
@@ -56,23 +57,20 @@ export default function Index() {
     setShowAppOptions(false);
   };
 
-  const onAddSticker = () => {
-    // we will implement this later
-  };
-
-  const onSaveImageAsync = async () => {
-    // we will implement this later
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.form}>
         <TextInput
           style={styles.input}
-          placeholder="Add a new work assignment"
-          onChangeText={(text: string) => setAssignment(text)}
-          value={assignment}
+          placeholder="Add a new assignment description"
+          onChangeText={(text: string) => setAssignmentDescription(text)}
+          value={assignment_description}
         />
+      </View>
+      <View style={styles.container}>
+        <TimePicker />
+      </View>
+      <View style={styles.container}>
         <Button theme="primary" label="Add assignment" onPress={addAssignment} />
       </View>
     </View>
@@ -83,12 +81,14 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 20,
-    flex: 1,
-    backgroundColor: '#25292e',
+    flex: 2,
+    flexDirection: 'column',
+    color: "#34aeae"
   },
   form: {
-    marginVertical: 20,
-    flexDirection: 'row',
+    marginVertical: 30,
+    flex: 0.5,
+    flexDirection: 'column',
     alignItems: 'center'
   },
   input: {
@@ -97,11 +97,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 4,
     padding: 10,
-    backgroundColor: '#fff'
   },
   textContainer: {
     flex: 1,
-    backgroundColor: 'white',
   },
   footerContainer: {
     flex: 1 / 3,
