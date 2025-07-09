@@ -2,7 +2,7 @@ import Button from '@/components/Button';
 import TimePicker from '@/components/TimePicker';
 import { collection, addDoc } from "firebase/firestore";
 import { useState } from 'react';
-import { View, StyleSheet, TextInput } from 'react-native';
+import { View, StyleSheet, Text, TextInput } from 'react-native';
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app';
@@ -32,6 +32,19 @@ export default function Index() {
   const [showAppOptions, setShowAppOptions] = useState<boolean>(false);
   // const [assignments, setAssignments] = useState<any[]>([]);
   const [assignment_description, setAssignmentDescription] = useState('');
+  const [formData, setFormData] = useState({
+    description: "",
+    startTime: new Date(),
+    done: false,
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    console.log(field, value)
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      [field]: value,
+    }));
+  };
 
   /*
   const addAssignment = async () => {
@@ -43,11 +56,16 @@ export default function Index() {
   const addAssignment = async () => {
     try {
       const docRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'), {
-        description: assignment_description,
-        done: false
+        description: formData.description,
+        startTime: formData.startTime,
+        done: formData.done
       });
-      console.log('Document written with ID: ', docRef.id, ' and description ', assignment_description);
-      setAssignmentDescription('');
+      console.log('Document written with ID: ', docRef.id, ' and description ', formData.description);
+      setFormData({
+        description: "",
+        startTime: new Date(),
+        done: false,
+      });
     } catch (e) {
       console.error('Error adding document: ', e);
     }
@@ -60,20 +78,30 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <View style={styles.form}>
+        <Text style={{
+          textAlign: 'left',
+          marginHorizontal: 20,
+        }}>
+          Description
+        </Text>
         <TextInput
           style={styles.input}
-          placeholder="Add a new assignment description"
-          onChangeText={(text: string) => setAssignmentDescription(text)}
-          value={assignment_description}
+          placeholder="Type an assignment description"
+          onChangeText={(text: string) => handleInputChange('description', text)}
+          id="description"
+          value={formData.description}
         />
       </View>
       <View style={styles.container}>
-        <TimePicker />
+        <TimePicker
+          time={new Date()}
+          inputHandler={(text: string) => handleInputChange('startTime', text)}
+        />
       </View>
       <View style={styles.container}>
-        <Button theme="primary" label="Add assignment" onPress={addAssignment} />
+        <Button theme="primary" label="Save assignment" onPress={addAssignment} />
       </View>
-    </View>
+    </View >
   );
 }
 

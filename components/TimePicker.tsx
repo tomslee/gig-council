@@ -2,19 +2,25 @@ import Button from '@/components/Button';
 import React, { useState } from 'react';
 import { View, Text, Platform, TextInput } from 'react-native';
 
+type Props = {
+    time: Date;
+    inputHandler: (text: string) => void;
+};
+
 // Only import on mobile platforms
 let DateTimePicker: React.JSX.IntrinsicAttributes;
 if (Platform.OS !== 'web') {
     DateTimePicker = require('@react-native-community/datetimepicker').default;
 }
 
-const TimePicker = () => {
-    const [time, setTime] = useState(new Date());
+const TimePicker = ({ time, inputHandler }: Props) => {
     const [showPicker, setShowPicker] = useState(false);
+    const [displayTime, setDisplayTime] = useState(new Date());
 
-    const onChange = (event: { type: string; }, selectedTime: React.SetStateAction<Date>) => {
+    const onChange = (event: { type: string; }, selectedTime: Date) => {
         if (event.type === 'set' && selectedTime) {
-            setTime(selectedTime);
+            setDisplayTime(selectedTime);
+            inputHandler(formatTime(selectedTime))
         }
         setShowPicker(Platform.OS === 'ios');
     };
@@ -23,7 +29,7 @@ const TimePicker = () => {
         const [hours, minutes] = timeString.split(':');
         const newTime = new Date();
         newTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-        setTime(newTime);
+        setDisplayTime(newTime);
     };
 
     const formatTime = (date: Date) => {
@@ -37,7 +43,7 @@ const TimePicker = () => {
     return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Text style={{ fontSize: 18, marginBottom: 20 }}>
-                Selected Time: {formatTime(time)}
+                Start Time: {formatTime(displayTime)}
             </Text>
 
             {Platform.OS === 'web' ? (
@@ -56,7 +62,7 @@ const TimePicker = () => {
                 />
             ) : (
                 <>
-                    <Button theme="primary" label="Select Time" onPress={() => setShowPicker(true)} />
+                    <Button theme="primary" label="Select Start Time" onPress={() => setShowPicker(true)} />
 
                     {showPicker && DateTimePicker && (
                         <DateTimePicker
