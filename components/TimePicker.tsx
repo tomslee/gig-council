@@ -2,22 +2,25 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 
+// Only import on mobile platforms
+/*
+let DateTimePicker: React.JSX.IntrinsicAttributes;
+if (Platform.OS !== 'web') {
+    DateTimePicker = require('@react-native-community/datetimepicker').default;
+}
+*/
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+
 type Props = {
     time: Date;
     inputHandler: (text: string) => void;
 };
 
-// Only import on mobile platforms
-let DateTimePicker: React.JSX.IntrinsicAttributes;
-if (Platform.OS !== 'web') {
-    DateTimePicker = require('@react-native-community/datetimepicker').default;
-}
-
 const TimePicker = ({ time, inputHandler }: Props) => {
     const [showPicker, setShowPicker] = useState(false);
     const [displayTime, setDisplayTime] = useState(time);
 
-    const onChange = (event: { type: string; }, selectedTime: Date) => {
+    const onChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
         if (event.type === 'set' && selectedTime) {
             setDisplayTime(selectedTime);
             inputHandler(formatTime(selectedTime))
