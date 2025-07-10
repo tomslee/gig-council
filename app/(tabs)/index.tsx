@@ -32,7 +32,7 @@ export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Home screen</Text>
+      <Text style={styles.text}>Welcome to Gig Councillor</Text>
     </View>
   );
 };
