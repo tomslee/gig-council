@@ -1,6 +1,6 @@
-import Button from '@/components/Button';
+// import Button from '@/components/Button';
 import React, { useState } from 'react';
-import { View, Text, Platform, TextInput } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 
 type Props = {
     time: Date;
@@ -15,7 +15,7 @@ if (Platform.OS !== 'web') {
 
 const TimePicker = ({ time, inputHandler }: Props) => {
     const [showPicker, setShowPicker] = useState(false);
-    const [displayTime, setDisplayTime] = useState(new Date());
+    const [displayTime, setDisplayTime] = useState(time);
 
     const onChange = (event: { type: string; }, selectedTime: Date) => {
         if (event.type === 'set' && selectedTime) {
@@ -41,11 +41,7 @@ const TimePicker = ({ time, inputHandler }: Props) => {
     };
 
     return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, marginBottom: 20 }}>
-                Start Time: {formatTime(displayTime)}
-            </Text>
-
+        <View>
             {Platform.OS === 'web' ? (
                 <TextInput
                     style={{
@@ -62,7 +58,15 @@ const TimePicker = ({ time, inputHandler }: Props) => {
                 />
             ) : (
                 <>
-                    <Button theme="primary" label="Select Start Time" onPress={() => setShowPicker(true)} />
+                    <TouchableOpacity
+                        style={styles.pickerButton}
+                        onPress={() => setShowPicker(true)} >
+                        <Text
+                            style={styles.pickerButtonText}>
+                            {formatTime(displayTime) || 'Select time...'}
+                        </Text>
+                        <Text style={styles.pickerArrow}>🕐</Text>
+                    </TouchableOpacity>
 
                     {showPicker && DateTimePicker && (
                         <DateTimePicker
@@ -78,5 +82,42 @@ const TimePicker = ({ time, inputHandler }: Props) => {
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    label: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#34495e',
+        marginBottom: 8,
+        marginLeft: 2,
+    },
+    pickerButton: {
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#e1e8ed',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    pickerButtonText: {
+        fontSize: 16,
+        color: '#2c3e50',
+    },
+    pickerArrow: {
+        fontSize: 14,
+        color: '#7f8c8d',
+    },
+});
 
 export default TimePicker;
