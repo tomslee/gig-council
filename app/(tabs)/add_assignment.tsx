@@ -1,4 +1,3 @@
-// import Button from '@/components/Button';
 import TimePicker from '@/components/TimePicker';
 import CategoryPicker from '@/components/CategoryPicker';
 import { collection, addDoc } from "firebase/firestore";
@@ -37,8 +36,7 @@ export const FIREBASE_APP = initializeApp(firebaseConfig);
 export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
 export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
 
-
-export default function Index() {
+export default function AddAssignment() {
   const [formData, setFormData] = useState({
     description: "",
     category: "",
@@ -68,6 +66,7 @@ export default function Index() {
         description: formData.description,
         category: formData.category,
         startTime: formData.startTime,
+        endTime: formData.endTime,
         done: formData.done
       });
       console.log('Document ID: ', docRef.id, ' and description ', formData.description);
@@ -83,9 +82,11 @@ export default function Index() {
     }
   };
 
+  /*
   const onReset = () => {
     setShowAppOptions(false);
   };
+  */
 
   return (
     <SafeAreaView style={styles.container}>
@@ -233,7 +234,9 @@ const styles = StyleSheet.create({
 });
 
 export interface Assignment {
-  done: boolean;
-  id: string;
   description: string;
+  category: string;
+  startTime: string;
+  endTime: string;
+  done: boolean;
 }
