@@ -1,6 +1,6 @@
 import TimePicker from '@/components/TimePicker';
 import CategoryPicker from '@/components/CategoryPicker';
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc } from '@react-native-firebase/firestore';
 import { useState } from 'react';
 import {
   View,
@@ -37,7 +37,7 @@ export const FIREBASE_APP = initializeApp(firebaseConfig);
 export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
 export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
 */
-import { FIRESTORE_DB } from './index.tsx';
+import { FIRESTORE_DB } from './index';
 
 export default function AddAssignment() {
   const [formData, setFormData] = useState({
@@ -235,11 +235,3 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 });
-
-export interface Assignment {
-  description: string;
-  category: string;
-  startTime: string;
-  endTime: string;
-  done: boolean;
-}

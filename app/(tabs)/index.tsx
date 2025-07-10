@@ -6,9 +6,10 @@ import {
 } from 'react-native';
 
 // Import the functions you need from the SDKs you need
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from '@react-native-firebase/app';
+import { getAuth } from '@react-native-firebase/auth';
+import { getFirestore } from '@react-native-firebase/firestore';
+import { appendBaseUrl } from 'expo-router/build/fork/getPathFromState-forks';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -27,6 +28,7 @@ const firebaseConfig = {
 export const FIREBASE_APP = initializeApp(firebaseConfig);
 export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
 export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
+// export const FIREBASE_AUTH = initializeAuth(appendBaseUrl, { persistence: getReactNativePersistence(ReactNativeAsyncStorage) })
 
 
 export default function HomeScreen() {
@@ -47,3 +49,13 @@ const styles = StyleSheet.create({
   text: {
   },
 });
+
+
+export interface Assignment {
+  id: string;
+  description: string;
+  category: string;
+  startTime: string;
+  endTime: string;
+  done: boolean;
+}

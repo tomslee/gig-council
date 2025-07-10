@@ -30,6 +30,7 @@ ios/*.xcworkspace
 # Android specific
 android/build/
 android/.gradle/
+android/app/
 android/app/build/
 android/app/.cxx/
 android/app/src/main/assets/
