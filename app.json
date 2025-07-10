@@ -9,8 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "net.tomslee.gigcouncil",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "supportsTablet": true,
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "package": "net.tomslee.gigcouncil",
+      "bundleIdentifier": "net.tomslee.gigcouncil"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,17 +29,6 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth",
-      "@react-native-firebase/crashlytics",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
-      ],
       "expo-router",
       [
         "expo-splash-screen",

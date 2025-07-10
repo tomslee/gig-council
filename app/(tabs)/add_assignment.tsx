@@ -1,6 +1,6 @@
 import TimePicker from '@/components/TimePicker';
 import CategoryPicker from '@/components/CategoryPicker';
-import { collection, addDoc } from '@react-native-firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import {
   View,
@@ -65,13 +65,14 @@ export default function AddAssignment() {
 
   const addAssignment = async () => {
     try {
-      const docRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'), {
-        description: formData.description,
-        category: formData.category,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        done: formData.done
-      });
+      const docRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'),
+        {
+          description: formData.description,
+          category: formData.category,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          done: formData.done
+        });
       console.log('Document ID: ', docRef.id, ' and description ', formData.description);
       setFormData({
         description: "",
@@ -141,7 +142,6 @@ export default function AddAssignment() {
               inputHandler={(text: string) => handleInputChange('endTime', text)}
             />
           </View>
-
 
           {/* Save Button */}
           <TouchableOpacity

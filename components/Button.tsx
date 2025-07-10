@@ -45,13 +45,12 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         alignItems: 'center',
         marginTop: 16,
-        shadowColor: '#3498db',
-        shadowOffset: {
-            width: 0,
-            height: 3,
+        boxShadow: {
+            offsetX: 0,
+            offsetY: -10,
+            blurRadius: 4,
+            color: '#3498db',
         },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
         elevation: 5,
     },
     buttonIcon: {
