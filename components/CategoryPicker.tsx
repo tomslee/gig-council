@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { CATEGORIES } from '@/app/(tabs)/index';
 
 type Props = {
     selectedValue: "";
@@ -10,17 +11,8 @@ type Props = {
 const CategoryPicker = ({ selectedValue, inputHandler }: Props) => {
     // const [selectedValue, setSelectedValue] = useState('cat1');
 
-    const categories = [
-        { value: 'catoffice', label: 'Office work' },
-        { value: 'catphone', label: 'Phone call' },
-        { value: 'catcommittee', label: 'Committee meeting' },
-        { value: 'catcouncil', label: 'Council meeting' },
-        { value: 'catbreak', label: 'Coffee break' },
-        { value: 'catadmin', label: 'Admin' },
-    ];
-
     const onChange = (itemValue: string) => {
-        const selectedItem = categories.find(item => item.value === itemValue)
+        const selectedItem = CATEGORIES.find(item => item.value === itemValue)
         if (selectedItem) {
             inputHandler(selectedItem.label)
         }
@@ -34,7 +26,7 @@ const CategoryPicker = ({ selectedValue, inputHandler }: Props) => {
                 onValueChange={(itemValue) => onChange(itemValue)}
                 style={styles.picker}
             >
-                {categories.map((category) => (
+                {CATEGORIES.map((category) => (
                     <Picker.Item
                         key={category.value}
                         label={category.label}

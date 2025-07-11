@@ -23,7 +23,14 @@ const firebaseConfig = {
 export const FIREBASE_APP = initializeApp(firebaseConfig);
 export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
 export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
-
+export const CATEGORIES = [
+  { value: 'catoffice', label: 'Office work' },
+  { value: 'catphone', label: 'Phone call' },
+  { value: 'catcommittee', label: 'Committee meeting' },
+  { value: 'catcouncil', label: 'Council meeting' },
+  { value: 'catbreak', label: 'Coffee break' },
+  { value: 'catadmin', label: 'Admin' },
+];
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
