@@ -20,6 +20,7 @@ import { useIsFocused } from "@react-navigation/native";
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
     type DisplayItem = {
         id: string;
@@ -55,6 +56,7 @@ export default function ReportScreen() {
                     });
                     console.log("A total of " + displayList.length + " assignments");
                     setDisplayList(displayList);
+                    setRefresh(!refresh);
                 } catch (err) {
                     console.error(err);
                 } finally {
@@ -89,12 +91,15 @@ export default function ReportScreen() {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>Retrieved {displayList.length} assignments</Text>
-            <FlatList
-                data={displayList}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-            />
+            <View style={styles.reportSection}>
+                <Text style={styles.label}>Retrieved {displayList.length} assignments</Text>
+                <FlatList
+                    data={displayList}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    extraData={refresh}
+                />
+            </View>
         </View>
     );
 }
@@ -104,7 +109,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: "#ffcfcf",
+        color: "#f8f9fa",
     },
     text: {
     },
@@ -128,5 +133,8 @@ const styles = StyleSheet.create({
         color: '#34495e',
         marginBottom: 8,
         marginLeft: 2,
+    },
+    reportSection: {
+        marginVertical: 8,
     },
 });
