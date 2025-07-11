@@ -45,10 +45,10 @@ const styles = StyleSheet.create({
 
 
 export interface Assignment {
-  id: string;
-  description: string;
-  category: string;
-  startTime: string;
-  endTime: string;
-  done: boolean;
+  id?: string;
+  description?: string;
+  category?: string;
+  startTime?: string;
+  endTime?: string;
+  done?: boolean;
 }
