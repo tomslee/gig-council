@@ -72,7 +72,7 @@ export default function AddAssignment() {
           endTime: formData.endTime,
           done: formData.done
         });
-      console.log('Document ID=', docRef.id, ', description=', formData.description);
+      console.log('Document ID=', docRef.id, ', category=', formData.category);
       setFormData({
         description: "",
         category: "",

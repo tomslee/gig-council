@@ -15,60 +15,66 @@ import {
     DocumentData
 } from "firebase/firestore";
 import { FIRESTORE_DB, Assignment } from './index';
+import { useIsFocused } from "@react-navigation/native";
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
-    const [selectedItem, setSelectedItem] = useState<DocumentData | null>({});
+    const [selectedItem, setSelectedItem] = useState(null);
+    const isFocused = useIsFocused();
     type DisplayItem = {
         id: string;
         description: string;
         category: string;
         title: string;
     }
-    let docList: DocumentData[] = []; // Declare an empty array 
-    let displayList: DisplayItem[] = [{
+    const [displayList, setDisplayList] = useState([{
         "id": "dummyid",
         "description": "dummy description",
         "category": "Admin",
         "title": "Dummy title"
-    }];
+    }]);
 
     useEffect(() => {
         const fetchData = async () => {
             const q = query(collection(FIRESTORE_DB, "gig-council"),
                 where("category", "==", "Admin"));
-            try {
-                const snapshot = await getDocs(q)
-                snapshot.forEach((doc) => {
-                    // doc.data() is never undefined for query doc snapshots
-                    docList.push(doc.data());
-                    displayList.push({
-                        "id": doc.id,
-                        "category": doc.data()["category"],
-                        "description": doc.data()["description"],
-                        "title": doc.data()["description"]
-                    })
-                    console.log(doc.id, " => ", doc.data()["description"]);
-                });
-                console.log("A total of " + displayList.length + " assignments");
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
+            if (isFocused) {
+                try {
+                    const snapshot = await getDocs(q)
+                    snapshot.forEach((doc) => {
+                        // doc.data() is never undefined for query doc snapshots
+                        if (displayList.findIndex(obj => obj.id === doc.id) === -1) {
+                            displayList.push({
+                                "id": doc.id,
+                                "category": doc.data()["category"],
+                                "description": doc.data()["description"],
+                                "title": doc.data()["description"]
+                            })
+                            console.log("Adding ", doc.id, " => ", doc.data()["description"]);
+                        }
+                    });
+                    console.log("A total of " + displayList.length + " assignments");
+                    setDisplayList(displayList);
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    setLoading(false);
+                }
+            };
         };
         fetchData();
-    }, []);
+    }, [isFocused]);
 
     const renderItem = ({ item }: ListRenderItemInfo<DisplayItem>) => {
         return (
             <TouchableOpacity
-                style={styles.listItem}
-                //item["description"] === selectedItem["description"] &&
-                //styles.selectedListItem,
+                style={[
+                    styles.listItem,
+                    item.id === selectedItem?.id && styles.selectedListItem,
+                ]}
                 onPress={() => setSelectedItem(item)}
             >
-                <Text style={styles.listItemText}>Here is an item {item["title"]}</Text>
+                <Text style={styles.listItemText}>{item["title"]}</Text>
             </TouchableOpacity>
         );
     };
@@ -111,7 +117,7 @@ const styles = StyleSheet.create({
         width: 320,
     },
     selectedListItem: {
-        backgroundColor: '#101010',
+        backgroundColor: '#dfffdf',
     },
     listItemText: {
         fontSize: 16,
