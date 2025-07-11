@@ -24,12 +24,12 @@ export const FIREBASE_APP = initializeApp(firebaseConfig);
 export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
 export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
 export const CATEGORIES = [
-  { value: 'catoffice', label: 'Office work' },
-  { value: 'catphone', label: 'Phone call' },
-  { value: 'catcommittee', label: 'Committee meeting' },
-  { value: 'catcouncil', label: 'Council meeting' },
-  { value: 'catbreak', label: 'Coffee break' },
-  { value: 'catadmin', label: 'Admin' },
+  { value: 'catoffice', label: 'Office work', payable: false },
+  { value: 'catphone', label: 'Phone call', payable: true },
+  { value: 'catcommittee', label: 'Committee meeting', payable: true },
+  { value: 'catcouncil', label: 'Council meeting', payable: true },
+  { value: 'catbreak', label: 'Coffee break', payable: false },
+  { value: 'catadmin', label: 'Admin', payable: false },
 ];
 export default function HomeScreen() {
   return (
