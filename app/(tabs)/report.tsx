@@ -4,7 +4,8 @@ import {
     Text,
     View,
     FlatList,
-    TouchableOpacity
+    TouchableOpacity,
+    ListRenderItemInfo
 } from 'react-native';
 import {
     collection,
@@ -59,16 +60,18 @@ export default function ReportScreen() {
         fetchData();
     }, []);
 
-    const renderItem = (item: DisplayItem) => (
-        <TouchableOpacity
-            style={styles.listItem}
-            //item["description"] === selectedItem["description"] &&
-            //styles.selectedListItem,
-            onPress={() => setSelectedItem(item)}
-        >
-            <Text style={styles.listItemText}>Here is an item {item["title"]}</Text>
-        </TouchableOpacity>
-    );
+    const renderItem = ({ item }: ListRenderItemInfo<DisplayItem>) => {
+        return (
+            <TouchableOpacity
+                style={styles.listItem}
+                //item["description"] === selectedItem["description"] &&
+                //styles.selectedListItem,
+                onPress={() => setSelectedItem(item)}
+            >
+                <Text style={styles.listItemText}>Here is an item {item["title"]}</Text>
+            </TouchableOpacity>
+        );
+    };
 
     if (loading) {
         return (

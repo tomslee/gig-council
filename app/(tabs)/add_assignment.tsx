@@ -49,7 +49,6 @@ export default function AddAssignment() {
   });
 
   const handleInputChange = (field: string, value: string) => {
-    // console.log(field, value)
     setFormData((prevFormData) => ({
       ...prevFormData,
       [field]: value,
@@ -73,7 +72,7 @@ export default function AddAssignment() {
           endTime: formData.endTime,
           done: formData.done
         });
-      console.log('Document ID: ', docRef.id, ' and description ', formData.description);
+      console.log('Document ID=', docRef.id, ', description=', formData.description);
       setFormData({
         description: "",
         category: "",
