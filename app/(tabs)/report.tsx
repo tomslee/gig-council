@@ -25,6 +25,8 @@ export default function ReportScreen() {
     type DailyPayReport = {
         "date": string;
         "categoryMinutes": { [key: string]: number };
+        "totalMinutes": number;
+        "paidMinutes": number;
     };
     type DisplayItem = {
         id: string;
@@ -42,7 +44,9 @@ export default function ReportScreen() {
 
     const [payReport, setPayReport] = useState<DailyPayReport>({
         "date": today,
-        "categoryMinutes": {}
+        "categoryMinutes": {},
+        "totalMinutes": 0,
+        "paidMinutes": 0
     });
 
     useEffect(() => {
@@ -51,10 +55,13 @@ export default function ReportScreen() {
             for (const category of CATEGORIES) {
                 payReport["categoryMinutes"][category["label"]] = 0;
             };
+            payReport["totalMinutes"] = 0;
+            payReport["paidMinutes"] = 0;
             if (isFocused) {
                 try {
                     const snapshot = await getDocs(q)
                     snapshot.forEach((doc) => {
+                        let category = doc.data()["category"];
                         // doc.data() is never undefined for query doc snapshots
                         if (docList.findIndex(obj => obj.id === doc.id) === -1) {
                             docList.push({
@@ -63,12 +70,21 @@ export default function ReportScreen() {
                                 "description": doc.data()["description"],
                                 "title": doc.data()["description"]
                             })
-                            console.log("Adding ", doc.id, " => ", doc.data()["category"]);
+                            console.log("Adding ", doc.id, " => ", category);
                         };
-                        let minutes = Math.abs(doc.data()["endTime"] - doc.data()["startTime"]) / 60.0;
-                        if (minutes > 0 && doc.data()["category"] != "") {
-                            payReport["categoryMinutes"][doc.data()["category"]] += minutes;
-                            console.log("payReport[\"categoryMinutes\"][\"" + doc.data()["category"] + "\"]=" + payReport["categoryMinutes"][doc.data()["category"]]);
+                        let minutes = Math.abs(doc.data()["endTime"] - doc.data()["startTime"]) / 60.0 || 0;
+                        if (minutes > 0 && category != "") {
+                            payReport["categoryMinutes"][category] += minutes;
+                        };
+                        let thisCategory = CATEGORIES.find(item => item["label"] === category) || {};
+                        if ("label" in thisCategory) {
+                            console.log("thisCategory = " + thisCategory["label"] + ", " + minutes + " minutes");
+                            if (minutes > 0) {
+                                payReport["totalMinutes"] += minutes;
+                                if (thisCategory["payable"]) {
+                                    payReport["paidMinutes"] += minutes;
+                                }
+                            };
                         };
                     });
                     console.log("A total of " + docList.length + " assignments");
@@ -110,12 +126,23 @@ export default function ReportScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.reportSection}>
+                <Text style={styles.label}>Overview</Text>
+                <View style={styles.listItem}>
+                    <Text style={{ fontWeight: "bold" }}>Paid minutes:</Text>
+                    <Text >{payReport["paidMinutes"]}</Text>
+                </View>
+                <View style={styles.listItem}>
+                    <Text style={{ fontWeight: "bold" }}>Total minutes:</Text>
+                    <Text >{payReport["totalMinutes"]}</Text>
+                </View>
+            </View>
+            <View style={styles.reportSection}>
                 <Text style={styles.label}>Time spent on each category (minutes)</Text>
                 {Object.entries(payReport["categoryMinutes"]).map(([key, value]) => (
-                    <Text key={key} style={styles.listItem}>
+                    <View key={key} style={styles.listItem}>
                         <Text style={{ fontWeight: "bold" }}>{key}: </Text>
                         <Text >{value}</Text>
-                    </Text>
+                    </View>
                 ))}
             </View>
             {/*
@@ -150,7 +177,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
         backgroundColor: '#fbfafb',
-        width: '100%',
+        width: 320,
     },
     selectedListItem: {
         backgroundColor: '#dfffdf',
