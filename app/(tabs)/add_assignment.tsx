@@ -2,6 +2,7 @@ import TimePicker from '@/components/TimePicker';
 import CategoryPicker from '@/components/CategoryPicker';
 import { collection, addDoc } from 'firebase/firestore';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -15,11 +16,11 @@ import {
 import { FIRESTORE_DB } from './index';
 
 export default function AddAssignment() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     description: "",
-    category: "",
+    category: "Admin",
     startTime: new Date(),
-    endTime: new Date(new Date().setMinutes(new Date().getMinutes() + 30)),
     done: false,
   });
 
@@ -30,13 +31,6 @@ export default function AddAssignment() {
     }));
   };
 
-  /*
-  const addAssignment = async () => {
-    // TODO
-    alert(assignment_description);
-  };
-  */
-
   const addAssignment = async () => {
     try {
       const docRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'),
@@ -44,17 +38,17 @@ export default function AddAssignment() {
           description: formData.description,
           category: formData.category,
           startTime: formData.startTime,
-          endTime: formData.endTime,
           done: formData.done
         });
-      console.log('Document ID=', docRef.id, ', category=', formData.category);
+      console.log('Uploaded assignment: ID=', docRef.id, ', category=', formData.category);
+      // Re-initialize the form data
       setFormData({
         description: "",
         category: "",
         startTime: new Date(),
-        endTime: new Date(new Date().setMinutes(new Date().getMinutes() + 30)),
         done: false,
       });
+      router.navigate('/'); // Navigate to the Home Screen
     } catch (e) {
       console.error('Error adding document: ', e);
     }
@@ -73,29 +67,32 @@ export default function AddAssignment() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.formContainer}>
+
+          {/* Category picker */}
+          <View style={styles.inputSection}>
+            <Text style={styles.label}>Work category:</Text>
+            <CategoryPicker
+              inputHandler={(text: string) => handleInputChange('category', text)}
+            />
+          </View>
+
+          {/* Description */}
           <View style={styles.inputSection}>
             <Text style={styles.label}>
               Description (optional):
             </Text>
             <TextInput
               style={styles.textInput}
-              placeholder="Type an assignment description"
+              placeholder="Type an assignment description..."
+              placeholderTextColor="gray" // Sets
               onChangeText={(text: string) => handleInputChange('description', text)}
               id="description"
               value={formData.description}
             />
           </View>
 
-          {/* Category picker */}
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Work category:</Text>
-            <CategoryPicker
-              selectedValue={''}
-              inputHandler={(text: string) => handleInputChange('category', text)}
-            />
-          </View>
-
           {/* Start time picker */}
+          {/*
           <View style={styles.inputSection}>
             <Text style={styles.label}>
               Start time:
@@ -105,23 +102,13 @@ export default function AddAssignment() {
               inputHandler={(text: string) => handleInputChange('startTime', text)}
             />
           </View>
+          */}
 
-          {/* End time picker */}
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>
-              End time:
-            </Text>
-            <TimePicker
-              time={formData.endTime}
-              inputHandler={(text: string) => handleInputChange('endTime', text)}
-            />
-          </View>
-
-          {/* Save Button */}
+          {/* Start Button */}
           <TouchableOpacity
             style={styles.saveButton}
             onPress={addAssignment} >
-            <Text style={styles.saveButtonText}>Save Assignment</Text>
+            <Text style={styles.saveButtonText}>Start Assignment</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -152,22 +139,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e1e8ed',
-    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#2c3e50',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    color: '#3e3e50',
     elevation: 1,
   },
   label: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#34495e',
     marginBottom: 8,
@@ -179,13 +158,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
-    shadowColor: '#3498db',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    boxShadow: [{
+      color: '#3498db',
+      offsetX: 0,
+      offsetY: 3,
+      blurRadius: 2,
+    }],
     elevation: 5,
   },
   saveButtonText: {

@@ -14,7 +14,7 @@ import {
     getDocs,
     DocumentData
 } from "firebase/firestore";
-import { FIRESTORE_DB, CATEGORIES } from './index';
+import { FIRESTORE_DB, CATEGORIES, Assignment } from './index';
 import { useIsFocused } from "@react-navigation/native";
 
 export default function ReportScreen() {
@@ -32,13 +32,11 @@ export default function ReportScreen() {
         id: string;
         description: string;
         category: string;
-        title: string;
     }
     const [docList, setDocList] = useState([{
         "id": "dummyid",
         "description": "dummy description",
         "category": "Admin",
-        "title": "Dummy title"
     }]);
     const today = new Date().toDateString();
 
@@ -68,16 +66,17 @@ export default function ReportScreen() {
                                 "id": doc.id,
                                 "category": doc.data()["category"],
                                 "description": doc.data()["description"],
-                                "title": doc.data()["description"]
                             })
-                            console.log("Adding ", doc.id, " => ", category);
+                            console.log("Downloading ", doc.id,
+                                "=>", category,
+                                "=>", doc.data()["descriotion"]);
                         };
                         let minutes = Math.abs(doc.data()["endTime"] - doc.data()["startTime"]) / 60.0 || 0;
                         if (minutes > 0 && category != "") {
                             payReport["categoryMinutes"][category] += minutes;
                         };
                         let thisCategory = CATEGORIES.find(item => item["label"] === category) || {};
-                        if ("label" in thisCategory) {
+                        if ("label" in thisCategory && "payable" in thisCategory) {
                             console.log("thisCategory = " + thisCategory["label"] + ", " + minutes + " minutes");
                             if (minutes > 0) {
                                 payReport["totalMinutes"] += minutes;
@@ -110,7 +109,7 @@ export default function ReportScreen() {
                 ]}
                 onPress={() => setSelectedItem(item)}
             >
-                <Text style={styles.listItemText}>{item["title"]}</Text>
+                <Text style={styles.listItemText}>{item["description"]}</Text>
             </TouchableOpacity>
         );
     };

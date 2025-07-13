@@ -4,17 +4,17 @@ import { Picker } from '@react-native-picker/picker';
 import { CATEGORIES } from '@/app/(tabs)/index';
 
 type Props = {
-    selectedValue: "";
     inputHandler: (text: string) => void;
 };
 
-const CategoryPicker = ({ selectedValue, inputHandler }: Props) => {
-    // const [selectedValue, setSelectedValue] = useState('cat1');
+const CategoryPicker = ({ inputHandler }: Props) => {
+    const [selectedValue, setSelectedValue] = useState("Admin");
 
     const onChange = (itemValue: string) => {
         const selectedItem = CATEGORIES.find(item => item.value === itemValue)
         if (selectedItem) {
             inputHandler(selectedItem.label)
+            setSelectedValue(selectedItem.label);
         }
         //setShowPicker(Platform.OS === 'ios');
     };
@@ -34,6 +34,7 @@ const CategoryPicker = ({ selectedValue, inputHandler }: Props) => {
                     />
                 ))}
             </Picker>
+            <Text>Selected item is {selectedValue}</Text>
         </View>
     );
 };
@@ -43,6 +44,8 @@ const CategoryPicker = ({ selectedValue, inputHandler }: Props) => {
 // </Text>
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+        height: 320,
     },
     label: {
         fontSize: 16,
@@ -52,7 +55,9 @@ const styles = StyleSheet.create({
         marginLeft: 2,
     },
     picker: {
-        backgroundColor: '#ddd',
+        fontSize: 16,
+        backgroundColor: '#fff',
+        elevation: 1,
     },
 });
 

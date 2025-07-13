@@ -104,13 +104,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        boxShadow: [{
+            color: '#000',
+            offsetX: 0,
+            offsetY: 1,
+            blurRadius: 2,
+        }],
         elevation: 1,
     },
     pickerButtonText: {
