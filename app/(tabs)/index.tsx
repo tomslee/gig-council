@@ -243,6 +243,7 @@ export default function HomeScreen() {
           {/* Open assignments */}
           {docList.length > 0 ? (
             <View style={styles.section}>
+              {/* console.log("Started at ", docList[docList.length - 1]["startTime"]).toLocaleTimeString() */}
               <Text style={styles.label}>You have {docList.length} assignments in progress...</Text>
               <View style={styles.assignmentContainer}>
                 <Text style={styles.listItemText}>
@@ -252,11 +253,11 @@ export default function HomeScreen() {
                   Description: {docList[docList.length - 1]["description"]}
                 </Text>
                 <Text style={styles.listItemText}>
-                  Started at: {docList[docList.length - 1]["startTime"].toString()}
-                </Text>
-                <Text style={styles.listItemText}>
-                  Started at: {new Date(parseInt(docList[docList.length - 1]["startTime"]))
-                    .toLocaleTimeString()}
+                  Started at {(new Date(1000 * docList[docList.length - 1]["startTime"]["seconds"]))
+                    .toLocaleTimeString(undefined, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                 </Text>
               </View>
             </View>
