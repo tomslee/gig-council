@@ -27,8 +27,8 @@ import {
   Platform
 } from 'react-native';
 import { FIRESTORE_DB } from './index';
-import { NativeModule } from 'expo';
 import { useIsFocused } from "@react-navigation/native";
+import { useUser } from '../../contexts/UserContext';
 
 export default function AddAssignment() {
   const router = useRouter();
@@ -41,6 +41,8 @@ export default function AddAssignment() {
   const [snapshot, setSnapshot] = useState<QuerySnapshot | undefined>();
   const [activeDocRef, setActiveDocRef] = useState<DocumentReference>();
   const isFocused = useIsFocused();
+  const { sharedUserData } = useUser();
+
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prevFormData) => ({
@@ -54,7 +56,9 @@ export default function AddAssignment() {
     // Close any open assignments
     try {
       const q = query(collection(FIRESTORE_DB, "gig-council"),
-        where('endTime', '==', null));
+        where('endTime', '==', null),
+        where('owner', '==', sharedUserData["username"])
+      );
       const querySnapshot = await getDocs(q);
       // ... process documents
       for (const doc of querySnapshot.docs) {
@@ -72,12 +76,13 @@ export default function AddAssignment() {
     try {
       const activeDocRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'),
         {
+          owner: sharedUserData["username"],
           description: formData.description,
           category: formData.category,
           startTime: serverTimestamp(),
           endTime: null,
         });
-      console.log('Uploaded assignment: ID=', activeDocRef.id, ', category=', formData.category);
+      console.log('Uploaded assignment: ID=', activeDocRef.id, ', category=', formData.category), "owner=", sharedUserData["username"];
       setActiveDocRef(activeDocRef);
     } catch (e) {
       console.error('Error adding assignment: ', e);

@@ -26,6 +26,8 @@ import {
 import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from "@react-navigation/native";
+import { useUser } from '../../contexts/UserContext';
+
 // End of imports
 
 // Your web app's Firebase configuration
@@ -78,6 +80,7 @@ export default function HomeScreen() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const router = useRouter();
   const isFocused = useIsFocused();
+  const { sharedUserData, setSharedUserData } = useUser();
 
   useEffect(() => {
     setLoading(true);
@@ -97,7 +100,8 @@ export default function HomeScreen() {
       };
       // Get any open assignments
       const q = query(collection(FIRESTORE_DB, "gig-council"),
-        where('endTime', '==', null));
+        where('endTime', '==', null),
+        where('owner', '==', sharedUserData["username"]));
       if (isFocused) {
         try {
           const snapshot = await getDocs(q)
@@ -191,6 +195,7 @@ export default function HomeScreen() {
       setStoredUsername(trimmedUsername);
       setUsername(trimmedUsername);
       setIsSignedIn(true);
+      setSharedUserData({ "username": trimmedUsername });
     } catch (error) {
       console.error('Error saving username:', error);
     }
