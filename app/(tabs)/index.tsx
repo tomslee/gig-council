@@ -83,6 +83,19 @@ export default function HomeScreen() {
     setLoading(true);
     setDocList([]);
     const fetchData = async () => {
+      // Get the stored Username
+      try {
+        const storedUsername = await AsyncStorage.getItem(
+          '@storedUsername'); // '@storedUsername' is the key
+        if (storedUsername) {
+          setStoredUsername(storedUsername);
+          setUsername(storedUsername);
+        };
+        console.log("Getting storedUsername: ", storedUsername);
+      } catch (error) {
+        console.error("Error retrieving storedUsername:", error);
+      };
+      // Get any open assignments
       const q = query(collection(FIRESTORE_DB, "gig-council"),
         where('endTime', '==', null));
       if (isFocused) {
@@ -172,10 +185,11 @@ export default function HomeScreen() {
   // To save a username
   const appSignIn = async () => {
     try {
+      let trimmedUsername = username.trim();
       await firebaseSignIn();
-      await AsyncStorage.setItem('@storedUsername', username);
-      setStoredUsername(username);
-      setUsername(username);
+      await AsyncStorage.setItem('@storedUsername', trimmedUsername);
+      setStoredUsername(trimmedUsername);
+      setUsername(trimmedUsername);
       setIsSignedIn(true);
     } catch (error) {
       console.error('Error saving username:', error);
@@ -219,21 +233,6 @@ export default function HomeScreen() {
     }
   }
 
-  useEffect(() => {
-    const getStoredUsername = async () => {
-      try {
-        const storedUsername = await AsyncStorage.getItem(
-          '@storedUsername'); // '@storedUsername' is the key
-        if (storedUsername) {
-          setStoredUsername(storedUsername);
-        };
-      } catch (error) {
-        console.error("Error retrieving storedUsername:", error);
-      }
-    };
-    getStoredUsername();
-  }, []); // Empty dependency array ensures it runs once on mount
-
   if (loading) {
     return (
       <View style={styles.container}>
@@ -269,12 +268,14 @@ export default function HomeScreen() {
                 style={styles.textInput}
                 onChangeText={setUsername}
                 value={username}
-                placeholder={storedUsername || "Type a user name..."}
+                placeholder={(storedUsername == '') ? "Type a user name..." : storedUsername}
+                defaultValue={storedUsername}
                 id="id-set-user-name"
               />
               <TouchableOpacity
                 style={styles.saveButton}
-                onPress={appSignIn} >
+                onPress={appSignIn}
+              >
                 <Text style={styles.saveButtonText}>Sign In</Text>
               </TouchableOpacity>
             </View>
