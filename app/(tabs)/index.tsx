@@ -98,10 +98,11 @@ export default function HomeScreen() {
       } catch (error) {
         console.error("Error retrieving storedUsername:", error);
       };
-      // Get any open assignments
+      // Get any open assignments for the user
       const q = query(collection(FIRESTORE_DB, "gig-council"),
         where('endTime', '==', null),
-        where('owner', '==', sharedUserData["username"]));
+        where('owner', '==', username));
+      console.log("retrieving assignments owned by ", sharedUserData["username"]);
       if (isFocused) {
         try {
           const snapshot = await getDocs(q)
@@ -196,8 +197,49 @@ export default function HomeScreen() {
       setUsername(trimmedUsername);
       setIsSignedIn(true);
       setSharedUserData({ "username": trimmedUsername });
+      console.log("Signed in user:", trimmedUsername);
     } catch (error) {
-      console.error('Error saving username:', error);
+      console.error('Error signing in:', error);
+    }
+
+    setDocList([]);
+    try {
+      // Get any open assignments for the user
+      const q = query(collection(FIRESTORE_DB, "gig-council"),
+        where('endTime', '==', null),
+        where('owner', '==', username));
+      console.log("retrieving assignments owned by ", sharedUserData["username"]);
+      if (isFocused) {
+        try {
+          const snapshot = await getDocs(q)
+          snapshot.forEach((doc) => {
+            // doc.data() is never undefined for query doc snapshots
+            if (docList.findIndex(obj => obj.id === doc.id) === -1) {
+              docList.push({
+                "id": doc.id,
+                "owner": doc.data()["owner"],
+                "category": doc.data()["category"],
+                "description": doc.data()["description"],
+                "startTime": doc.data()["startTime"],
+                "endTime": doc.data()["endTime"]
+              })
+              console.log("Fetching ", doc.id,
+                "=>", doc.data()["description"],
+                "=>", doc.data()["category"],
+                doc.data()["startTime"]["seconds"]);
+            };
+          });
+          console.log("Fetched", docList.length, "unfinished assignments");
+          setDocList(docList);
+          setRefresh(!refresh);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+    } catch (error) {
+      console.error('Error signing in:', error);
     }
   };
 
