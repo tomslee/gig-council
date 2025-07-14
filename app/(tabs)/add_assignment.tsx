@@ -37,7 +37,6 @@ export default function AddAssignment() {
     category: "Admin",
     startTime: Timestamp.fromDate(new Date()),
     endTime: null,
-    done: false,
   });
   const [snapshot, setSnapshot] = useState<QuerySnapshot | undefined>();
   const [activeDocRef, setActiveDocRef] = useState<DocumentReference>();
@@ -77,7 +76,6 @@ export default function AddAssignment() {
           category: formData.category,
           startTime: serverTimestamp(),
           endTime: null,
-          done: formData.done
         });
       console.log('Uploaded assignment: ID=', activeDocRef.id, ', category=', formData.category);
       setActiveDocRef(activeDocRef);
@@ -92,7 +90,6 @@ export default function AddAssignment() {
         category: "",
         startTime: Timestamp.fromDate(new Date()),
         endTime: null,
-        done: false,
       });
       router.navigate('/'); // Navigate to the Home Screen
     } catch (e) {

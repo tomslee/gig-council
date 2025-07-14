@@ -16,13 +16,14 @@ import {
   collection,
   doc,
   getFirestore,
+  serverTimestamp,
   query,
   where,
   getDocs,
   updateDoc,
   Timestamp
 } from "firebase/firestore";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from "@react-navigation/native";
 // End of imports
@@ -54,11 +55,11 @@ export const CATEGORIES = [
 ];
 export interface Assignment {
   id?: string;
+  owner: string;
   description?: string;
   category?: string;
   startTime: Timestamp;
   endTime: Timestamp;
-  done?: boolean;
 }
 /*
  * End of exports
@@ -74,6 +75,7 @@ export default function HomeScreen() {
   const [docList, setDocList] = useState<Assignment[]>([]);
   const [username, setUsername] = useState('');
   const [storedUsername, setStoredUsername] = useState('');
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const router = useRouter();
   const isFocused = useIsFocused();
 
@@ -91,11 +93,11 @@ export default function HomeScreen() {
             if (docList.findIndex(obj => obj.id === doc.id) === -1) {
               docList.push({
                 "id": doc.id,
+                "owner": doc.data()["owner"],
                 "category": doc.data()["category"],
                 "description": doc.data()["description"],
                 "startTime": doc.data()["startTime"],
-                "endTime": doc.data()["endTime"],
-                "done": doc.data()["done"]
+                "endTime": doc.data()["endTime"]
               })
               console.log("Fetching ", doc.id,
                 "=>", doc.data()["description"],
@@ -116,24 +118,6 @@ export default function HomeScreen() {
     fetchData();
   }, [isFocused]);
 
-  /*
-  const updateAssignment = async (assignment: Assignment) => {
-    if (assignment.id) {
-      const docRef = doc(collection(FIRESTORE_DB, 'gig-council'), assignment.id);
-      try {
-        await updateDoc(docRef, {
-          done: true
-        });
-        console.log("Document successfully updated");
-      } catch (error) {
-        console.error("Error updating document:", error);
-      }
-      console.log("Assignment selected:" + assignment.id + "," + assignment.category);
-      // setSelectedItem(assignment);
-    }
-  };
-  */
-
 
   const goToAddAssignment = () => {
     router.navigate('/add_assignment'); // Navigate to the /add_assignment route
@@ -143,59 +127,111 @@ export default function HomeScreen() {
    * End of constants (functions)
    */
 
-  signInAnonymously(FIREBASE_AUTH)
-    .then(() => {
-      // Signed in..
-      const user = FIREBASE_AUTH.currentUser;
-      if (user) {
-        // console.log("Anonymous sign in as " + user.uid);
-      };
-    })
-    .catch((error) => {
-      const errorCode = error.code;
-      const errorMessage = error.message;
-      // ...
-    });
+  const firebaseSignIn = async () => {
+    signInAnonymously(FIREBASE_AUTH)
+      .then((userCredential) => {
+        // Anonymous user signed in successfully
+        const user = userCredential.user;
+        console.log("Anonymous sign-in succeeded: user UID:", user.uid);
+        // You can now use the 'user' object for further operations
+      })
+      .catch((error) => {
+        // Handle errors during anonymous sign-in
+        console.error("Anonymous sign-in failed:", error);
+      });
+  };
 
+  const firebaseSignOut = async () => {
+    // End the anonymous Firebase session
+    signOut(FIREBASE_AUTH)
+      .then(() => {
+        // User signed out
+        console.log("Firebase signed out.");
+      });
+  };
+
+  /*
   onAuthStateChanged(FIREBASE_AUTH, (user) => {
     if (user) {
-      // User is signed in, see docs for a list of available properties
+      // Anonymous user is signed in, see docs for a list of available properties
       // https://firebase.google.com/docs/reference/js/auth.user
       const uid = user.uid;
       // console.log("Status changed for anonymous user " + user.uid);
       // ...
     } else {
-      // User is signed out
-      // ...
+      // Anonymous user is signed out of Firebase
+      console.log("Firebase auth state changed: not authenticated");
     }
   });
+  */
 
 
   /*
    * Login management
    */
   // To save a username
-  const saveUserName = async () => {
+  const appSignIn = async () => {
     try {
-      await AsyncStorage.setItem('@username', username);
+      await firebaseSignIn();
+      await AsyncStorage.setItem('@storedUsername', username);
       setStoredUsername(username);
+      setUsername(username);
+      setIsSignedIn(true);
     } catch (error) {
       console.error('Error saving username:', error);
     }
   };
 
-  useEffect(() => {
-    const getUsername = async () => {
+  const appSignOut = async () => {
+    try {
+      setDocList([]);
+      // Close any open assignments
       try {
-        const storedUsername = await AsyncStorage.getItem('@username'); // 'username' is the key
-        if (storedUsername !== null) {
-          setUsername(storedUsername);
-        }
+        const q = query(collection(FIRESTORE_DB, "gig-council"),
+          where('endTime', '==', null));
+        const querySnapshot = await getDocs(q);
+        // ... process documents
+        for (const doc of querySnapshot.docs) {
+          const docRef = doc.ref; // Get a reference to the document
+          await updateDoc(docRef, {
+            endTime: serverTimestamp() // The field and its new value
+          });
+          console.log("Assignment closed:", doc.id);
+        };
+      } catch (e) {
+        console.error(`Error closing assignment {docRef.id}: `, e);
+      };
+      await firebaseSignOut();
+      // Set the local user name. But don't change the stored user name
+      setUsername('');
+      setIsSignedIn(false);
+      console.log('Signed out of application. Stored user name is', storedUsername);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const deleteLocalUserName = async () => {
+    try {
+      AsyncStorage.removeItem('@storedUsername');
+    } catch (error) {
+      console.error('Error deleting username:', error);
+    }
+  }
+
+  useEffect(() => {
+    const getStoredUsername = async () => {
+      try {
+        const storedUsername = await AsyncStorage.getItem(
+          '@storedUsername'); // '@storedUsername' is the key
+        if (storedUsername) {
+          setStoredUsername(storedUsername);
+        };
       } catch (error) {
-        console.error("Error retrieving username:", error);
+        console.error("Error retrieving storedUsername:", error);
       }
     };
-    getUsername();
+    getStoredUsername();
   }, []); // Empty dependency array ensures it runs once on mount
 
   if (loading) {
@@ -214,7 +250,7 @@ export default function HomeScreen() {
       >
         <View style={styles.formContainer}>
           {/* Welcome banner */}
-          {storedUsername ? (
+          {isSignedIn ? (
             <View style={styles.bannerSection}>
               <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {storedUsername}.</Text>
               <Text style={styles.bannerText} >You are now online and available for work assignments.</Text>
@@ -227,25 +263,25 @@ export default function HomeScreen() {
           )}
 
           {/* Sign in section */}
-          {storedUsername ? (null) : (
+          {isSignedIn ? (null) : (
             <View style={styles.section}>
               <TextInput
                 style={styles.textInput}
                 onChangeText={setUsername}
                 value={username}
-                placeholder="Type a user name..."
+                placeholder={storedUsername || "Type a user name..."}
                 id="id-set-user-name"
               />
               <TouchableOpacity
                 style={styles.saveButton}
-                onPress={saveUserName} >
+                onPress={appSignIn} >
                 <Text style={styles.saveButtonText}>Sign In</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Open assignments */}
-          {docList.length > 0 ? (
+          {(isSignedIn && (docList.length > 0)) ? (
             <View style={styles.section}>
               {/* console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString()) */}
               <Text style={styles.label}>Current assignment...</Text>
@@ -269,8 +305,8 @@ export default function HomeScreen() {
             </View>
           ) : null}
 
-          {/* Save Button */}
-          {storedUsername ? (
+          {/* Start an assignment Button */}
+          {isSignedIn ? (
             <View style={styles.section}>
               <TouchableOpacity
                 style={styles.saveButton}
@@ -279,6 +315,18 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           ) : null}
+
+          {/* Save Button */}
+          {isSignedIn ? (
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={appSignOut} >
+                <Text style={styles.saveButtonText}>Close assignment and sign out of work</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -300,12 +348,6 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 24,
     justifyContent: 'space-evenly', // This evenly distributes the form elements
-  },
-  bannerSection: {
-    paddingVertical: 20,
-    marginVertical: 8,
-    elevation: 1,
-    backgroundColor: '#ffffff',
   },
   section: {
     marginVertical: 8,
@@ -337,6 +379,12 @@ const styles = StyleSheet.create({
     color: '#34495e',
     marginBottom: 8,
     marginLeft: 2,
+  },
+  bannerSection: {
+    paddingVertical: 20,
+    marginVertical: 8,
+    elevation: 1,
+    backgroundColor: '#ffffff',
   },
   bannerText: {
     fontSize: 20,
