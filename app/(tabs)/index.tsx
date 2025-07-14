@@ -20,7 +20,7 @@ import {
   where,
   getDocs,
   updateDoc,
-  DocumentData
+  Timestamp
 } from "firebase/firestore";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -253,7 +253,9 @@ export default function HomeScreen() {
                   Description: {docList[docList.length - 1]["description"]}
                 </Text>
                 <Text style={styles.listItemText}>
-                  Started at {(new Date(1000 * docList[docList.length - 1]["startTime"]["seconds"]))
+                  Started at {(new Date(1000 * Timestamp.fromDate(
+                    docList[docList.length - 1]["startTime"])
+                    .seconds))
                     .toLocaleTimeString(undefined, {
                       hour: '2-digit',
                       minute: '2-digit',
