@@ -3,18 +3,13 @@ import {
     StyleSheet,
     Text,
     View,
-    FlatList,
-    TouchableOpacity,
-    ListRenderItemInfo
 } from 'react-native';
 import {
     collection,
     query,
-    where,
     getDocs,
-    DocumentData
 } from "firebase/firestore";
-import { FIRESTORE_DB, CATEGORIES, Assignment } from './index';
+import { FIRESTORE_DB, CATEGORIES } from './index';
 import { useIsFocused } from "@react-navigation/native";
 
 export default function ReportScreen() {
@@ -100,6 +95,7 @@ export default function ReportScreen() {
         fetchData();
     }, [isFocused]);
 
+    /*
     const renderItem = ({ item }: ListRenderItemInfo<DisplayItem>) => {
         return (
             <TouchableOpacity
@@ -113,6 +109,7 @@ export default function ReportScreen() {
             </TouchableOpacity>
         );
     };
+    */
 
     if (loading) {
         return (

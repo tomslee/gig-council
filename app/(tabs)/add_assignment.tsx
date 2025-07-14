@@ -1,6 +1,6 @@
 import TimePicker from '@/components/TimePicker';
 import CategoryPicker from '@/components/CategoryPicker';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
@@ -14,13 +14,15 @@ import {
   Platform
 } from 'react-native';
 import { FIRESTORE_DB } from './index';
+import { NativeModule } from 'expo';
 
 export default function AddAssignment() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     description: "",
     category: "Admin",
-    startTime: new Date(),
+    startTime: Timestamp.fromDate(new Date()),
+    endTime: null,
     done: false,
   });
 
@@ -45,7 +47,8 @@ export default function AddAssignment() {
       setFormData({
         description: "",
         category: "",
-        startTime: new Date(),
+        startTime: Timestamp.fromDate(new Date()),
+        endTime: null,
         done: false,
       });
       router.navigate('/'); // Navigate to the Home Screen

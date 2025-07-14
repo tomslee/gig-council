@@ -56,8 +56,8 @@ export interface Assignment {
   id?: string;
   description?: string;
   category?: string;
-  startTime: Date;
-  endTime?: Date;
+  startTime: Timestamp;
+  endTime?: Timestamp;
   done?: boolean;
 }
 /*
@@ -68,7 +68,7 @@ export interface Assignment {
  * Home Screen
  */
 export default function HomeScreen() {
-  const [selectedItem, setSelectedItem] = useState<Assignment | null>(null);
+  // const [selectedItem, setSelectedItem] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
   const [docList, setDocList] = useState<Assignment[]>([]);
@@ -98,7 +98,7 @@ export default function HomeScreen() {
               console.log("Fetching ", doc.id,
                 "=>", doc.data()["description"],
                 "=>", doc.data()["category"],
-                "=>", doc.data()["startTime"]);
+                doc.data()["startTime"]["seconds"]);
             };
           });
           console.log("A total of " + docList.length + " assignments");
@@ -126,7 +126,7 @@ export default function HomeScreen() {
         console.error("Error updating document:", error);
       }
       console.log("Assignment selected:" + assignment.id + "," + assignment.category);
-      setSelectedItem(assignment);
+      // setSelectedItem(assignment);
     }
   };
 
@@ -243,7 +243,7 @@ export default function HomeScreen() {
           {/* Open assignments */}
           {docList.length > 0 ? (
             <View style={styles.section}>
-              {/* console.log("Started at ", docList[docList.length - 1]["startTime"]).toLocaleTimeString() */}
+              {console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString())}
               <Text style={styles.label}>You have {docList.length} assignments in progress...</Text>
               <View style={styles.assignmentContainer}>
                 <Text style={styles.listItemText}>
@@ -252,15 +252,15 @@ export default function HomeScreen() {
                 <Text style={styles.listItemText}>
                   Description: {docList[docList.length - 1]["description"]}
                 </Text>
-                <Text style={styles.listItemText}>
-                  Started at {(new Date(1000 * Timestamp.fromDate(
-                    docList[docList.length - 1]["startTime"])
-                    .seconds))
-                    .toLocaleTimeString(undefined, {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                </Text>
+                {docList[docList.length - 1]["startTime"] ? (
+                  <Text style={styles.listItemText}>
+                    Started at {(docList[docList.length - 1]["startTime"]).toDate()
+                      .toLocaleTimeString(undefined, {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                  </Text>) : null
+                }
               </View>
             </View>
           ) : null}
