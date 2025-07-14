@@ -1,7 +1,20 @@
 import TimePicker from '@/components/TimePicker';
 import CategoryPicker from '@/components/CategoryPicker';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { useState } from 'react';
+import {
+  collection,
+  doc,
+  get,
+  addDoc,
+  Timestamp,
+  query,
+  where,
+  getDocs,
+  QuerySnapshot,
+  updateDoc,
+  DocumentReference,
+  serverTimestamp
+} from 'firebase/firestore';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import {
   View,
@@ -15,6 +28,7 @@ import {
 } from 'react-native';
 import { FIRESTORE_DB } from './index';
 import { NativeModule } from 'expo';
+import { useIsFocused } from "@react-navigation/native";
 
 export default function AddAssignment() {
   const router = useRouter();
@@ -25,6 +39,9 @@ export default function AddAssignment() {
     endTime: null,
     done: false,
   });
+  const [snapshot, setSnapshot] = useState<QuerySnapshot | undefined>();
+  const [activeDocRef, setActiveDocRef] = useState<DocumentReference>();
+  const isFocused = useIsFocused();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prevFormData) => ({
@@ -34,16 +51,42 @@ export default function AddAssignment() {
   };
 
   const addAssignment = async () => {
+    console.log("In addAssignment");
+    // Close any open assignments
     try {
-      const docRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'),
+      const q = query(collection(FIRESTORE_DB, "gig-council"),
+        where('endTime', '==', null));
+      const querySnapshot = await getDocs(q);
+      // ... process documents
+      for (const doc of querySnapshot.docs) {
+        const docRef = doc.ref; // Get a reference to the document
+        await updateDoc(docRef, {
+          endTime: serverTimestamp() // The field and its new value
+        });
+        console.log(`Assignment ', {doc.id}, 'closed.`);
+      };
+    } catch (e) {
+      console.error(`Error closing assignment {docRef.id}: `, e);
+    };
+
+    // Add the new assignment
+    try {
+      const activeDocRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'),
         {
           description: formData.description,
           category: formData.category,
-          startTime: formData.startTime,
+          startTime: serverTimestamp(),
+          endTime: null,
           done: formData.done
         });
-      console.log('Uploaded assignment: ID=', docRef.id, ', category=', formData.category);
-      // Re-initialize the form data
+      console.log('Uploaded assignment: ID=', activeDocRef.id, ', category=', formData.category);
+      setActiveDocRef(activeDocRef);
+    } catch (e) {
+      console.error('Error adding assignment: ', e);
+    };
+
+    // Re-initialize the form data
+    try {
       setFormData({
         description: "",
         category: "",
@@ -53,7 +96,7 @@ export default function AddAssignment() {
       });
       router.navigate('/'); // Navigate to the Home Screen
     } catch (e) {
-      console.error('Error adding document: ', e);
+      console.error('Error re-initializing form: ', e);
     }
   };
 

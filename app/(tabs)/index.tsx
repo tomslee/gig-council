@@ -57,7 +57,7 @@ export interface Assignment {
   description?: string;
   category?: string;
   startTime: Timestamp;
-  endTime?: Timestamp;
+  endTime: Timestamp;
   done?: boolean;
 }
 /*
@@ -78,9 +78,11 @@ export default function HomeScreen() {
   const isFocused = useIsFocused();
 
   useEffect(() => {
+    setLoading(true);
+    setDocList([]);
     const fetchData = async () => {
       const q = query(collection(FIRESTORE_DB, "gig-council"),
-        where('done', '==', false));
+        where('endTime', '==', null));
       if (isFocused) {
         try {
           const snapshot = await getDocs(q)
@@ -101,7 +103,7 @@ export default function HomeScreen() {
                 doc.data()["startTime"]["seconds"]);
             };
           });
-          console.log("A total of " + docList.length + " assignments");
+          console.log("Fetched", docList.length, "unfinished assignments");
           setDocList(docList);
           setRefresh(!refresh);
         } catch (err) {
@@ -114,14 +116,15 @@ export default function HomeScreen() {
     fetchData();
   }, [isFocused]);
 
+  /*
   const updateAssignment = async (assignment: Assignment) => {
     if (assignment.id) {
-      const docRef = doc(FIRESTORE_DB, 'gig-council', assignment.id);
+      const docRef = doc(collection(FIRESTORE_DB, 'gig-council'), assignment.id);
       try {
         await updateDoc(docRef, {
           done: true
         });
-        console.log("Document successfully updated!");
+        console.log("Document successfully updated");
       } catch (error) {
         console.error("Error updating document:", error);
       }
@@ -129,6 +132,7 @@ export default function HomeScreen() {
       // setSelectedItem(assignment);
     }
   };
+  */
 
 
   const goToAddAssignment = () => {
@@ -144,7 +148,7 @@ export default function HomeScreen() {
       // Signed in..
       const user = FIREBASE_AUTH.currentUser;
       if (user) {
-        console.log("Anonymous sign in as " + user.uid);
+        // console.log("Anonymous sign in as " + user.uid);
       };
     })
     .catch((error) => {
@@ -158,7 +162,7 @@ export default function HomeScreen() {
       // User is signed in, see docs for a list of available properties
       // https://firebase.google.com/docs/reference/js/auth.user
       const uid = user.uid;
-      console.log("Status changed for anonymous user " + user.uid);
+      // console.log("Status changed for anonymous user " + user.uid);
       // ...
     } else {
       // User is signed out
@@ -243,8 +247,8 @@ export default function HomeScreen() {
           {/* Open assignments */}
           {docList.length > 0 ? (
             <View style={styles.section}>
-              {console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString())}
-              <Text style={styles.label}>You have {docList.length} assignments in progress...</Text>
+              {/* console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString()) */}
+              <Text style={styles.label}>Current assignment...</Text>
               <View style={styles.assignmentContainer}>
                 <Text style={styles.listItemText}>
                   Category: {docList[docList.length - 1]["category"]}
