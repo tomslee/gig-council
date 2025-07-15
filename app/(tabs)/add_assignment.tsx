@@ -66,10 +66,10 @@ export default function AddAssignment() {
         await updateDoc(docRef, {
           endTime: serverTimestamp() // The field and its new value
         });
-        console.log(`Assignment ', {doc.id}, 'closed.`);
+        console.log('Assignment ', doc.id, 'closed.');
       };
     } catch (e) {
-      console.error(`Error closing assignment {docRef.id}: `, e);
+      console.error('Error closing assignment', doc.id, ': ', e);
     };
 
     // Add the new assignment

@@ -94,45 +94,47 @@ export default function HomeScreen() {
           setStoredUsername(storedUsername);
           setUsername(storedUsername);
         };
-        console.log("Getting storedUsername: ", storedUsername);
-      } catch (error) {
-        console.error("Error retrieving storedUsername:", error);
-      };
-      // Get any open assignments for the user
-      const q = query(collection(FIRESTORE_DB, "gig-council"),
-        where('endTime', '==', null),
-        where('owner', '==', username));
-      console.log("retrieving assignments owned by ", sharedUserData["username"]);
-      if (isFocused) {
-        try {
-          const snapshot = await getDocs(q)
-          snapshot.forEach((doc) => {
-            // doc.data() is never undefined for query doc snapshots
-            if (docList.findIndex(obj => obj.id === doc.id) === -1) {
-              docList.push({
-                "id": doc.id,
-                "owner": doc.data()["owner"],
-                "category": doc.data()["category"],
-                "description": doc.data()["description"],
-                "startTime": doc.data()["startTime"],
-                "endTime": doc.data()["endTime"]
-              })
-              console.log("Fetching ", doc.id,
-                "=>", doc.data()["description"],
-                "=>", doc.data()["category"],
-                doc.data()["startTime"]["seconds"]);
+        // Get any open assignments for the user
+        if (username != '') {
+          const q = query(collection(FIRESTORE_DB, "gig-council"),
+            where('endTime', '==', null),
+            where('owner', '==', username));
+          console.log("retrieving assignments owned by ", username);
+          if (isFocused) {
+            try {
+              const snapshot = await getDocs(q)
+              snapshot.forEach((doc) => {
+                // doc.data() is never undefined for query doc snapshots
+                if (docList.findIndex(obj => obj.id === doc.id) === -1) {
+                  docList.push({
+                    "id": doc.id,
+                    "owner": doc.data()["owner"],
+                    "category": doc.data()["category"],
+                    "description": doc.data()["description"],
+                    "startTime": doc.data()["startTime"],
+                    "endTime": doc.data()["endTime"]
+                  })
+                  console.log("Fetching ", doc.id,
+                    "=>", doc.data()["description"],
+                    "=>", doc.data()["category"],
+                    doc.data()["startTime"]["seconds"]);
+                };
+              });
+              console.log("Fetched", docList.length, "unfinished assignments");
+              setDocList(docList);
+              setRefresh(!refresh);
+            } catch (error) {
+              console.error("Error retrieving storedUsername:", error);
             };
-          });
-          console.log("Fetched", docList.length, "unfinished assignments");
-          setDocList(docList);
-          setRefresh(!refresh);
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      };
-    };
+          }; // if isFocused
+        }; // if username
+      }
+      catch (error) {
+        console.error("Error retrieving storedUsername:", error);
+      } finally {
+        setLoading(false);
+      }; // try-catch
+    }; // fetchData
     fetchData();
   }, [isFocused]);
 
@@ -289,7 +291,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeAreaContainer}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -383,7 +385,7 @@ export default function HomeScreen() {
 
 
 const styles = StyleSheet.create({
-  container: {
+  safeAreaContainer: {
     flex: 1,
     color: '#f8f9fa',
   },

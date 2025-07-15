@@ -3,20 +3,29 @@ import {
     StyleSheet,
     Text,
     View,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView
 } from 'react-native';
 import {
     collection,
     query,
+    where,
     getDocs,
 } from "firebase/firestore";
 import { FIRESTORE_DB, CATEGORIES } from './index';
 import { useIsFocused } from "@react-navigation/native";
+import { useUser } from '../../contexts/UserContext';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
     const [selectedItem, setSelectedItem] = useState(null);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
+    const { sharedUserData } = useUser();
+    const [docList, setDocList] = useState([{}]);
+
     type DailyPayReport = {
         "date": string;
         "categoryMinutes": { [key: string]: number };
@@ -28,11 +37,6 @@ export default function ReportScreen() {
         description: string;
         category: string;
     }
-    const [docList, setDocList] = useState([{
-        "id": "dummyid",
-        "description": "dummy description",
-        "category": "Admin",
-    }]);
     const today = new Date().toDateString();
 
     const [payReport, setPayReport] = useState<DailyPayReport>({
@@ -44,9 +48,13 @@ export default function ReportScreen() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const q = query(collection(FIRESTORE_DB, "gig-council"));
+            setDocList([{}]);
+            const q = query(collection(FIRESTORE_DB, "gig-council"),
+                where('owner', '==', sharedUserData["username"])
+            );
             for (const category of CATEGORIES) {
                 payReport["categoryMinutes"][category["label"]] = 0;
+                console.log("Setting categoryMinutes to zero for", category["label"]);
             };
             payReport["totalMinutes"] = 0;
             payReport["paidMinutes"] = 0;
@@ -54,6 +62,9 @@ export default function ReportScreen() {
                 try {
                     const snapshot = await getDocs(q)
                     snapshot.forEach((doc) => {
+                        if (doc.data()["endTime"] == null) {
+                            return;
+                        }
                         let category = doc.data()["category"];
                         // doc.data() is never undefined for query doc snapshots
                         if (docList.findIndex(obj => obj.id === doc.id) === -1) {
@@ -66,7 +77,9 @@ export default function ReportScreen() {
                                 "=>", category,
                                 "=>", doc.data()["descriotion"]);
                         };
-                        let minutes = Math.abs(doc.data()["endTime"] - doc.data()["startTime"]) / 60.0 || 0;
+                        let minutes = Math.abs(doc.data()["endTime"].toDate() -
+                            doc.data()["startTime"].toDate()) / (60000.0) || 0;
+                        console.log("Elapsed time:", minutes);
                         if (minutes > 0 && category != "") {
                             payReport["categoryMinutes"][category] += minutes;
                         };
@@ -100,12 +113,12 @@ export default function ReportScreen() {
         return (
             <TouchableOpacity
                 style={[
-                    styles.listItem,
+                    styles.reportItem,
                     item.id === selectedItem?.id && styles.selectedListItem,
                 ]}
                 onPress={() => setSelectedItem(item)}
             >
-                <Text style={styles.listItemText}>{item["description"]}</Text>
+                <Text style={styles.reportItemText}>{item["description"]}</Text>
             </TouchableOpacity>
         );
     };
@@ -113,35 +126,46 @@ export default function ReportScreen() {
 
     if (loading) {
         return (
-            <View style={styles.container}>
+            <View style={styles.reportContainer}>
                 <Text style={styles.text}>Loading data ...</Text>
             </View>
         )
     };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.reportSection}>
-                <Text style={styles.label}>Overview</Text>
-                <View style={styles.listItem}>
-                    <Text style={{ fontWeight: "bold" }}>Paid minutes:</Text>
-                    <Text >{payReport["paidMinutes"]}</Text>
-                </View>
-                <View style={styles.listItem}>
-                    <Text style={{ fontWeight: "bold" }}>Total minutes:</Text>
-                    <Text >{payReport["totalMinutes"]}</Text>
-                </View>
-            </View>
-            <View style={styles.reportSection}>
-                <Text style={styles.label}>Time spent on each category (minutes)</Text>
-                {Object.entries(payReport["categoryMinutes"]).map(([key, value]) => (
-                    <View key={key} style={styles.listItem}>
-                        <Text style={{ fontWeight: "bold" }}>{key}: </Text>
-                        <Text >{value}</Text>
+        <SafeAreaView style={styles.safeAreaContainer}>
+            <KeyboardAvoidingView
+                style={styles.keyboardAvoid}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+                <ScrollView style={styles.reportContainer}
+                    contentContainerStyle={styles.reportContainerContent}
+                >
+
+                    {/* Overview */}
+                    <View style={styles.reportSection}>
+                        <Text style={styles.label}>Overview</Text>
+                        <View style={styles.reportItem}>
+                            <Text style={{ fontWeight: "bold" }}>Total minutes:</Text>
+                            <Text >{payReport["totalMinutes"].toFixed()}</Text>
+                        </View>
+                        <View style={styles.reportItem}>
+                            <Text style={{ fontWeight: "bold" }}>Paid minutes:</Text>
+                            <Text >{payReport["paidMinutes"].toFixed()}</Text>
+                        </View>
                     </View>
-                ))}
-            </View>
-            {/*
+
+                    {/* Categories */}
+                    <View style={styles.reportSection}>
+                        <Text style={styles.label}>Time spent on each category (minutes)</Text>
+                        {Object.entries(payReport["categoryMinutes"]).map(([key, value]) => (
+                            <View key={key} style={styles.reportItem}>
+                                <Text style={{ fontWeight: "bold" }}>{key}: </Text>
+                                <Text >{value.toFixed()}</Text>
+                            </View>
+                        ))}
+                    </View>
+                    {/*
             <View style={styles.reportSection}>
                 <Text style={styles.label}>Retrieved {docList.length} assignments</Text>
                 <FlatList
@@ -152,33 +176,59 @@ export default function ReportScreen() {
                 />
             </View>
             */}
-        </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView >
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
+    safeAreaContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        color: '#f8f9fa',
+    },
+    keyboardAvoid: {
+        flex: 1,
+    },
+    reportContainer: {
+        flex: 1,
+        marginHorizontal: 8,
+        paddingHorizontal: 24,
+        paddingTop: 2,
+        paddingBottom: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        borderRadius: 4,
+    },
+    reportContainerContent: {
+    },
+    reportSection: {
+        marginVertical: 8,
+    },
+    reportItem: {
+        flexDirection: 'row', // Arranges children horizontally
+        justifyContent: 'space-evenly', // This evenly distributes the form elements
+        width: '100%', // Ensures the container takes full width
+        paddingHorizontal: 10, // Adds some padding for better visual appearance
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        borderRadius: 4,
+        backgroundColor: '#fbfafb',
+        elevation: 2,
     },
     text: {
     },
-    listItem: {
-        flex: 1,
+    reportItemText: {
+        fontSize: 16,
+        //flex: 1,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 5,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        backgroundColor: '#fbfafb',
-        width: 320,
+        padding: 10,
+        width: 240,
     },
     selectedListItem: {
         backgroundColor: '#dfffdf',
-    },
-    listItemText: {
-        fontSize: 16,
     },
     label: {
         fontSize: 16,
@@ -186,8 +236,5 @@ const styles = StyleSheet.create({
         color: '#34495e',
         marginBottom: 8,
         marginLeft: 2,
-    },
-    reportSection: {
-        marginVertical: 8,
     },
 });
