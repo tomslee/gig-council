@@ -1,20 +1,16 @@
-import TimePicker from '@/components/TimePicker';
 import CategoryPicker from '@/components/CategoryPicker';
 import {
   collection,
   doc,
-  get,
   addDoc,
   Timestamp,
   query,
   where,
   getDocs,
-  QuerySnapshot,
   updateDoc,
-  DocumentReference,
   serverTimestamp
 } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   View,
@@ -27,8 +23,7 @@ import {
   Platform
 } from 'react-native';
 import { FIRESTORE_DB } from './index';
-import { useIsFocused } from "@react-navigation/native";
-import { useUser } from '../../contexts/UserContext';
+import { useUserContext } from '../../contexts/UserContext';
 
 export default function AddAssignment() {
   const router = useRouter();
@@ -38,10 +33,7 @@ export default function AddAssignment() {
     startTime: Timestamp.fromDate(new Date()),
     endTime: null,
   });
-  const [snapshot, setSnapshot] = useState<QuerySnapshot | undefined>();
-  const [activeDocRef, setActiveDocRef] = useState<DocumentReference>();
-  const isFocused = useIsFocused();
-  const { sharedUserData } = useUser();
+  const { userData } = useUserContext();
 
 
   const handleInputChange = (field: string, value: string) => {
@@ -55,9 +47,8 @@ export default function AddAssignment() {
     console.log("In addAssignment");
     // Close any open assignments
     try {
-      const q = query(collection(FIRESTORE_DB, "gig-council"),
-        where('endTime', '==', null),
-        where('owner', '==', sharedUserData["username"])
+      const q = query(collection(FIRESTORE_DB, "gig-council"), where('endTime', '==', null),
+        where('owner', '==', userData["username"])
       );
       const querySnapshot = await getDocs(q);
       // ... process documents
@@ -76,14 +67,13 @@ export default function AddAssignment() {
     try {
       const activeDocRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'),
         {
-          owner: sharedUserData["username"],
+          owner: userData["username"],
           description: formData.description,
           category: formData.category,
           startTime: serverTimestamp(),
           endTime: null,
         });
-      console.log('Uploaded assignment: ID=', activeDocRef.id, ', category=', formData.category), "owner=", sharedUserData["username"];
-      setActiveDocRef(activeDocRef);
+      console.log('Uploaded assignment: ID=', activeDocRef.id, ', category=', formData.category, "owner=", userData["username"]);
     } catch (e) {
       console.error('Error adding assignment: ', e);
     };
@@ -154,9 +144,12 @@ export default function AddAssignment() {
 
           {/* Start Button */}
           <TouchableOpacity
-            style={styles.saveButton}
-            onPress={addAssignment} >
-            <Text style={styles.saveButtonText}>Start Assignment</Text>
+            style={[styles.saveButton, !userData.isSignedIn && styles.disabledButton]}
+            onPress={addAssignment}
+            disabled={!userData.isSignedIn}>
+            <Text style={styles.saveButtonText}>
+              {userData.isSignedIn ? 'Start Assignment' : 'You must sign in to start an assignment'}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -213,6 +206,15 @@ const styles = StyleSheet.create({
       blurRadius: 2,
     }],
     elevation: 5,
+  },
+  disabledButton: {
+    backgroundColor: '#b2d8d8',
+    boxShadow: [{
+      color: '#b2d8d8',
+      offsetX: 0,
+      offsetY: 3,
+      blurRadius: 2,
+    }],
   },
   saveButtonText: {
     color: '#ffffff',

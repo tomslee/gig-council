@@ -1,6 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from "@react-navigation/native";
+import { useUserContext } from '../../contexts/UserContext';
 import {
   View,
   TouchableOpacity,
@@ -14,7 +16,6 @@ import {
 import { initializeApp } from 'firebase/app';
 import {
   collection,
-  doc,
   getFirestore,
   serverTimestamp,
   query,
@@ -23,10 +24,8 @@ import {
   updateDoc,
   Timestamp
 } from "firebase/firestore";
-import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "firebase/auth";
+import { getAuth, isSignInWithEmailLink, signInAnonymously, signOut } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useIsFocused } from "@react-navigation/native";
-import { useUser } from '../../contexts/UserContext';
 
 // End of imports
 
@@ -77,10 +76,9 @@ export default function HomeScreen() {
   const [docList, setDocList] = useState<Assignment[]>([]);
   const [username, setUsername] = useState('');
   const [storedUsername, setStoredUsername] = useState('');
-  const [isSignedIn, setIsSignedIn] = useState(false);
   const router = useRouter();
   const isFocused = useIsFocused();
-  const { sharedUserData, setSharedUserData } = useUser();
+  const { userData, setUserData } = useUserContext();
 
   useEffect(() => {
     setLoading(true);
@@ -197,8 +195,7 @@ export default function HomeScreen() {
       await AsyncStorage.setItem('@storedUsername', trimmedUsername);
       setStoredUsername(trimmedUsername);
       setUsername(trimmedUsername);
-      setIsSignedIn(true);
-      setSharedUserData({ "username": trimmedUsername });
+      setUserData({ "username": trimmedUsername, "isSignedIn": true });
       console.log("Signed in user:", trimmedUsername);
     } catch (error) {
       console.error('Error signing in:', error);
@@ -210,7 +207,7 @@ export default function HomeScreen() {
       const q = query(collection(FIRESTORE_DB, "gig-council"),
         where('endTime', '==', null),
         where('owner', '==', username));
-      console.log("retrieving assignments owned by ", sharedUserData["username"]);
+      console.log("retrieving assignments owned by ", userData["username"]);
       if (isFocused) {
         try {
           const snapshot = await getDocs(q)
@@ -267,7 +264,10 @@ export default function HomeScreen() {
       await firebaseSignOut();
       // Set the local user name. But don't change the stored user name
       setUsername('');
-      setIsSignedIn(false);
+      setUserData(prev => ({
+        "username": '',
+        "isSignedIn": false
+      }));
       console.log('Signed out of application. Stored user name is', storedUsername);
     } catch (error) {
       console.error('Error signing out:', error);
@@ -284,7 +284,7 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.safeAreaContainer}>
         <Text style={styles.text}>Loading data ...</Text>
       </View>
     )
@@ -298,7 +298,7 @@ export default function HomeScreen() {
       >
         <View style={styles.formContainer}>
           {/* Welcome banner */}
-          {isSignedIn ? (
+          {userData.isSignedIn ? (
             <View style={styles.bannerSection}>
               <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {storedUsername}.</Text>
               <Text style={styles.bannerText} >You are now online and available for work assignments.</Text>
@@ -311,7 +311,7 @@ export default function HomeScreen() {
           )}
 
           {/* Sign in section */}
-          {isSignedIn ? (null) : (
+          {userData.isSignedIn ? (null) : (
             <View style={styles.section}>
               <TextInput
                 style={styles.textInput}
@@ -331,7 +331,7 @@ export default function HomeScreen() {
           )}
 
           {/* Open assignments */}
-          {(isSignedIn && (docList.length > 0)) ? (
+          {(userData.isSignedIn && (docList.length > 0)) ? (
             <View style={styles.section}>
               {/* console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString()) */}
               <Text style={styles.label}>Current assignment...</Text>
@@ -356,7 +356,7 @@ export default function HomeScreen() {
           ) : null}
 
           {/* Start an assignment Button */}
-          {isSignedIn ? (
+          {userData.isSignedIn ? (
             <View style={styles.section}>
               <TouchableOpacity
                 style={styles.saveButton}
@@ -367,7 +367,7 @@ export default function HomeScreen() {
           ) : null}
 
           {/* Save Button */}
-          {isSignedIn ? (
+          {userData.isSignedIn ? (
             <View style={styles.section}>
               <TouchableOpacity
                 style={styles.saveButton}
