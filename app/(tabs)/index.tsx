@@ -24,7 +24,7 @@ import {
   updateDoc,
   Timestamp
 } from "firebase/firestore";
-import { getAuth, isSignInWithEmailLink, signInAnonymously, signOut } from "firebase/auth";
+import { getAuth, signInAnonymously, signOut } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // End of imports
@@ -74,8 +74,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
   const [docList, setDocList] = useState<Assignment[]>([]);
-  const [username, setUsername] = useState('');
-  const [storedUsername, setStoredUsername] = useState('');
+  const [localUsername, setLocalUsername] = useState('');
+  //const [storedUsername, setStoredUsername] = useState('');
   const router = useRouter();
   const isFocused = useIsFocused();
   const { userData, setUserData } = useUserContext();
@@ -86,18 +86,21 @@ export default function HomeScreen() {
     const fetchData = async () => {
       // Get the stored Username
       try {
-        const storedUsername = await AsyncStorage.getItem(
-          '@storedUsername'); // '@storedUsername' is the key
+        const storedUsername = await AsyncStorage.getItem('@storedUsername'); // '@storedUsername' is the key
         if (storedUsername) {
-          setStoredUsername(storedUsername);
-          setUsername(storedUsername);
+          // setStoredUsername(storedUsername);
+          setUserData(prev => ({
+            ...prev,
+            username: storedUsername,
+            storedUsername: storedUsername
+          }));
         };
         // Get any open assignments for the user
-        if (username != '') {
+        if (userData.username != '') {
           const q = query(collection(FIRESTORE_DB, "gig-council"),
             where('endTime', '==', null),
-            where('owner', '==', username));
-          console.log("retrieving assignments owned by ", username);
+            where('owner', '==', userData.username));
+          console.log("retrieving assignments owned by ", userData.username);
           if (isFocused) {
             try {
               const snapshot = await getDocs(q)
@@ -125,7 +128,7 @@ export default function HomeScreen() {
               console.error("Error retrieving storedUsername:", error);
             };
           }; // if isFocused
-        }; // if username
+        }; // if userData.username
       }
       catch (error) {
         console.error("Error retrieving storedUsername:", error);
@@ -190,12 +193,16 @@ export default function HomeScreen() {
   // To save a username
   const appSignIn = async () => {
     try {
-      let trimmedUsername = username.trim();
+      const trimmedUsername = localUsername.trim();
+      console.log("localUsername=", localUsername);
       await firebaseSignIn();
       await AsyncStorage.setItem('@storedUsername', trimmedUsername);
-      setStoredUsername(trimmedUsername);
-      setUsername(trimmedUsername);
-      setUserData({ "username": trimmedUsername, "isSignedIn": true });
+      // setStoredUsername(trimmedUsername);
+      setUserData({
+        username: trimmedUsername,
+        storedUsername: trimmedUsername,
+        isSignedIn: true
+      });
       console.log("Signed in user:", trimmedUsername);
     } catch (error) {
       console.error('Error signing in:', error);
@@ -206,8 +213,8 @@ export default function HomeScreen() {
       // Get any open assignments for the user
       const q = query(collection(FIRESTORE_DB, "gig-council"),
         where('endTime', '==', null),
-        where('owner', '==', username));
-      console.log("retrieving assignments owned by ", userData["username"]);
+        where('owner', '==', userData.username));
+      console.log("retrieving assignments owned by ", userData.username);
       if (isFocused) {
         try {
           const snapshot = await getDocs(q)
@@ -242,10 +249,31 @@ export default function HomeScreen() {
     }
   };
 
+  const closeAssignment = async () => {
+    try {
+      setDocList([]);
+      // Close any open assignments
+        const q = query(collection(FIRESTORE_DB, "gig-council"),
+          where('endTime', '==', null));
+        const querySnapshot = await getDocs(q);
+        // ... process documents
+        for (const doc of querySnapshot.docs) {
+          const docRef = doc.ref; // Get a reference to the document
+          await updateDoc(docRef, {
+            endTime: serverTimestamp() // The field and its new value
+          });
+          console.log("Assignment closed:", doc.id);
+        };
+    } catch (e) {
+        console.error(`Error closing assignment {docRef.id}: `, e);
+    };
+  };
+
   const appSignOut = async () => {
     try {
       setDocList([]);
       // Close any open assignments
+      /*
       try {
         const q = query(collection(FIRESTORE_DB, "gig-council"),
           where('endTime', '==', null));
@@ -261,12 +289,15 @@ export default function HomeScreen() {
       } catch (e) {
         console.error(`Error closing assignment {docRef.id}: `, e);
       };
+      */
+      await closeAssignment();
       await firebaseSignOut();
-      // Set the local user name. But don't change the stored user name
-      setUsername('');
+      // Set the local user name to empty. But the storedUsername has
+      // not been changed, so don't update that.
       setUserData(prev => ({
-        "username": '',
-        "isSignedIn": false
+        ...prev,
+        username: '',
+        isSignedIn: false
       }));
       console.log('Signed out of application. Stored user name is', storedUsername);
     } catch (error) {
@@ -280,7 +311,7 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error deleting username:', error);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -300,7 +331,7 @@ export default function HomeScreen() {
           {/* Welcome banner */}
           {userData.isSignedIn ? (
             <View style={styles.bannerSection}>
-              <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {storedUsername}.</Text>
+              <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.storedUsername}.</Text>
               <Text style={styles.bannerText} >You are now online and available for work assignments.</Text>
             </View>
           ) : (
@@ -315,10 +346,10 @@ export default function HomeScreen() {
             <View style={styles.section}>
               <TextInput
                 style={styles.textInput}
-                onChangeText={setUsername}
-                value={username}
-                placeholder={(storedUsername == '') ? "Type a user name..." : storedUsername}
-                defaultValue={storedUsername}
+                onChangeText={setLocalUsername}
+                value={localUsername}
+                placeholder={(userData.storedUsername == '') ? "Type a user name..." : userData.storedUsername}
+                defaultValue={userData.storedUsername}
                 id="id-set-user-name"
               />
               <TouchableOpacity
@@ -352,6 +383,11 @@ export default function HomeScreen() {
                   </Text>) : null
                 }
               </View>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={closeAssignment} >
+                <Text style={styles.saveButtonText}>Close this assignment</Text>
+              </TouchableOpacity>
             </View>
           ) : null}
 
@@ -361,18 +397,26 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={goToAddAssignment} >
+              {docList.length > 0 ? (
                 <Text style={styles.saveButtonText}>Start a new assignment</Text>
+              ): (
+                <Text style={styles.saveButtonText}>Start an assignment</Text>
+              ) }
               </TouchableOpacity>
             </View>
           ) : null}
 
-          {/* Save Button */}
+          {/* Sign out Button */}
           {userData.isSignedIn ? (
             <View style={styles.section}>
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={appSignOut} >
+              {docList.length > 0 ? (
                 <Text style={styles.saveButtonText}>Close assignment and sign out of work</Text>
+              ): (
+                <Text style={styles.saveButtonText}>Sign out of work</Text>
+              ) }
               </TouchableOpacity>
             </View>
           ) : null}
@@ -484,7 +528,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0', // Light gray border
     // Or, for shadow:
     boxShadow: [{
-      color: '#000',
+      color: '#E0E0E0',
       offsetX: 0,
       offsetY: 2,
       blurRadius: 4,

@@ -68,26 +68,28 @@ export default function ReportScreen() {
                         if (doc.data()["endTime"] == null) {
                             return;
                         }
-                        const category = doc.data()["category"];
+                        const docCategory = doc.data()["category"];
+                        const docDescription = doc.data()["description"];
                         // doc.data() is never undefined for query doc snapshots
                         if (docList.findIndex(obj => obj.id === doc.id) === -1) {
                             docList.push({
                                 "id": doc.id,
-                                "category": doc.data()["category"],
-                                "description": doc.data()["description"],
-                            })
+                                "category": docCategory,
+                                "description": docDescription
+                            });
                             console.log("Downloading ", doc.id,
-                                "=>", category,
-                                "=>", doc.data()["descriotion"]);
+                                "=>", docCategory,
+                                "=>", docDescription
+                            );
                         };
                         const minutes = Math.abs(doc.data()["endTime"].toDate() -
                             doc.data()["startTime"].toDate()) / (60000.0) || 0;
                         console.log("Elapsed time:", minutes);
-                        if (minutes > 0 && category != "") {
-                            payReport["categoryMinutes"][category] += minutes;
-                            payReport["categoryAssignments"][category] += 1;
+                        if (minutes > 0 && docCategory != "") {
+                            payReport["categoryMinutes"][docCategory] += minutes;
+                            payReport["categoryAssignments"][docCategory] += 1;
                         };
-                        const thisCategory = CATEGORIES.find(item => item["label"] === category) || {};
+                        const thisCategory = CATEGORIES.find(item => item["label"] === docCategory) || {};
                         if ("label" in thisCategory && "payable" in thisCategory) {
                             console.log("thisCategory = " + thisCategory["label"] + ", " + minutes + " minutes");
                             if (minutes > 0) {
