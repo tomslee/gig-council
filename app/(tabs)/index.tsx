@@ -402,19 +402,20 @@ const styles = StyleSheet.create({
   section: {
     marginVertical: 8,
   },
+  listItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    //borderBottomColor: '#eee',
+    borderBottomColor: '#B2D8D8',
+    borderRadius: 5,
+    backgroundColor: '#fbfafb',
+    width: 320,
+  },
   text: {
   },
   flatList: {
     padding: 10,
     marginTop: 20,
-  },
-  listItem: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    borderRadius: 5,
-    backgroundColor: '#fbfafb',
-    width: 320,
   },
   selectedListItem: {
     backgroundColor: '#dfffdf',
@@ -446,13 +447,13 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   saveButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: '#66B2B2',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
     boxShadow: [{
-      color: '#3498db',
+      color: '#66B2B2',
       offsetX: 0,
       offsetY: 3,
       blurRadius: 2,

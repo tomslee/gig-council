@@ -201,13 +201,13 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   saveButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: '#66B2B2',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
     boxShadow: [{
-      color: '#3498db',
+      color: '#66B2B2',
       offsetX: 0,
       offsetY: 3,
       blurRadius: 2,
