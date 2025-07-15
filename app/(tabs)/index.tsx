@@ -94,44 +94,47 @@ export default function HomeScreen() {
           setStoredUsername(storedUsername);
           setUsername(storedUsername);
         };
-        console.log("Getting storedUsername: ", storedUsername);
-      } catch (error) {
-        console.error("Error retrieving storedUsername:", error);
-      };
-      // Get any open assignments
-      const q = query(collection(FIRESTORE_DB, "gig-council"),
-        where('endTime', '==', null),
-        where('owner', '==', sharedUserData["username"]));
-      if (isFocused) {
-        try {
-          const snapshot = await getDocs(q)
-          snapshot.forEach((doc) => {
-            // doc.data() is never undefined for query doc snapshots
-            if (docList.findIndex(obj => obj.id === doc.id) === -1) {
-              docList.push({
-                "id": doc.id,
-                "owner": doc.data()["owner"],
-                "category": doc.data()["category"],
-                "description": doc.data()["description"],
-                "startTime": doc.data()["startTime"],
-                "endTime": doc.data()["endTime"]
-              })
-              console.log("Fetching ", doc.id,
-                "=>", doc.data()["description"],
-                "=>", doc.data()["category"],
-                doc.data()["startTime"]["seconds"]);
+        // Get any open assignments for the user
+        if (username != '') {
+          const q = query(collection(FIRESTORE_DB, "gig-council"),
+            where('endTime', '==', null),
+            where('owner', '==', username));
+          console.log("retrieving assignments owned by ", username);
+          if (isFocused) {
+            try {
+              const snapshot = await getDocs(q)
+              snapshot.forEach((doc) => {
+                // doc.data() is never undefined for query doc snapshots
+                if (docList.findIndex(obj => obj.id === doc.id) === -1) {
+                  docList.push({
+                    "id": doc.id,
+                    "owner": doc.data()["owner"],
+                    "category": doc.data()["category"],
+                    "description": doc.data()["description"],
+                    "startTime": doc.data()["startTime"],
+                    "endTime": doc.data()["endTime"]
+                  })
+                  console.log("Fetching ", doc.id,
+                    "=>", doc.data()["description"],
+                    "=>", doc.data()["category"],
+                    doc.data()["startTime"]["seconds"]);
+                };
+              });
+              console.log("Fetched", docList.length, "unfinished assignments");
+              setDocList(docList);
+              setRefresh(!refresh);
+            } catch (error) {
+              console.error("Error retrieving storedUsername:", error);
             };
-          });
-          console.log("Fetched", docList.length, "unfinished assignments");
-          setDocList(docList);
-          setRefresh(!refresh);
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      };
-    };
+          }; // if isFocused
+        }; // if username
+      }
+      catch (error) {
+        console.error("Error retrieving storedUsername:", error);
+      } finally {
+        setLoading(false);
+      }; // try-catch
+    }; // fetchData
     fetchData();
   }, [isFocused]);
 
@@ -196,8 +199,49 @@ export default function HomeScreen() {
       setUsername(trimmedUsername);
       setIsSignedIn(true);
       setSharedUserData({ "username": trimmedUsername });
+      console.log("Signed in user:", trimmedUsername);
     } catch (error) {
-      console.error('Error saving username:', error);
+      console.error('Error signing in:', error);
+    }
+
+    setDocList([]);
+    try {
+      // Get any open assignments for the user
+      const q = query(collection(FIRESTORE_DB, "gig-council"),
+        where('endTime', '==', null),
+        where('owner', '==', username));
+      console.log("retrieving assignments owned by ", sharedUserData["username"]);
+      if (isFocused) {
+        try {
+          const snapshot = await getDocs(q)
+          snapshot.forEach((doc) => {
+            // doc.data() is never undefined for query doc snapshots
+            if (docList.findIndex(obj => obj.id === doc.id) === -1) {
+              docList.push({
+                "id": doc.id,
+                "owner": doc.data()["owner"],
+                "category": doc.data()["category"],
+                "description": doc.data()["description"],
+                "startTime": doc.data()["startTime"],
+                "endTime": doc.data()["endTime"]
+              })
+              console.log("Fetching ", doc.id,
+                "=>", doc.data()["description"],
+                "=>", doc.data()["category"],
+                doc.data()["startTime"]["seconds"]);
+            };
+          });
+          console.log("Fetched", docList.length, "unfinished assignments");
+          setDocList(docList);
+          setRefresh(!refresh);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+    } catch (error) {
+      console.error('Error signing in:', error);
     }
   };
 
@@ -247,7 +291,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeAreaContainer}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -341,7 +385,7 @@ export default function HomeScreen() {
 
 
 const styles = StyleSheet.create({
-  container: {
+  safeAreaContainer: {
     flex: 1,
     color: '#f8f9fa',
   },
@@ -358,19 +402,20 @@ const styles = StyleSheet.create({
   section: {
     marginVertical: 8,
   },
+  listItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    //borderBottomColor: '#eee',
+    borderBottomColor: '#B2D8D8',
+    borderRadius: 5,
+    backgroundColor: '#fbfafb',
+    width: 320,
+  },
   text: {
   },
   flatList: {
     padding: 10,
     marginTop: 20,
-  },
-  listItem: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    borderRadius: 5,
-    backgroundColor: '#fbfafb',
-    width: 320,
   },
   selectedListItem: {
     backgroundColor: '#dfffdf',
@@ -402,13 +447,13 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   saveButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: '#66B2B2',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
     boxShadow: [{
-      color: '#3498db',
+      color: '#66B2B2',
       offsetX: 0,
       offsetY: 3,
       blurRadius: 2,
