@@ -11,7 +11,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { FIRESTORE_DB } from '../lib/firebase';
-import { Assignment } from '../app/(tabs)/index';
+import { Assignment, Session } from '../app/(tabs)/index';
 
 export const firestoreService = {
 
@@ -32,7 +32,7 @@ export const firestoreService = {
         };
     },
 
-  // Get all open documents owned by one user
+  // Get all open assignments owned by one user
     async getAllOpenAssignmentsByOwner(collectionName: string, owner: string) {
         try {
             const q = query(collection(FIRESTORE_DB, collectionName),
@@ -45,7 +45,7 @@ export const firestoreService = {
                 startTime: doc.data().startTime.toDate(), 
             })) as Assignment[];
         }  catch (error) {
-            console.error('Error getting documents ', error);
+            console.error('Error getting assignments ', error);
         };
     },
 
@@ -71,7 +71,7 @@ export const firestoreService = {
     }
   },
 
-  // Create a new document
+  // Create a new assignment
   async createAssignment(collectionName: string, newAssignment: Assignment) {
     try {
         const collectionRef = collection(FIRESTORE_DB, collectionName);
@@ -109,7 +109,7 @@ export const firestoreService = {
             endTime: endTime,
         };
     } catch (error) {
-        console.error(`Error updating document:`, error);
+        console.error(`Error closing assignment:`, error);
         throw error;
     }
   },
@@ -126,6 +126,83 @@ export const firestoreService = {
         };
     } catch (e) {
         console.error(`Error closing assignment {docRef.id}: `, e);
+    };
+  },
+
+  // Create a new session (log in for work)
+  async createSession(collectionName: string, newSession: Session) {
+    try {
+        const collectionRef = collection(FIRESTORE_DB, collectionName);
+        const startTime = new Date();
+        const docRef = await addDoc(collectionRef, {
+            ...newSession,
+            startTime: startTime,
+        });
+        console.log(`Created session id=`, docRef.id);
+        return {
+            id: docRef.id,
+            ...newSession,
+            startTime: startTime,
+        };
+    } catch (error) {
+        console.error(`Error creating session:`, error);
+      throw error;
+    }
+  },
+
+  // Get all open sessions owned by one user (there should be only one)
+    async getAllOpenSessionsByOwner(collectionName: string, owner: string) {
+        try {
+            const q = query(collection(FIRESTORE_DB, collectionName),
+                where('owner', '==', owner),
+                where('endTime', '==', null));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                startTime: doc.data().startTime.toDate(), 
+            })) as Session[];
+        }  catch (error) {
+            console.error('Error getting sessions ', error);
+        };
+    },
+
+  // Close a session
+  async closeSession(collectionName: string, session: Session) {
+    try {
+        const endTime = new Date();
+        const docRef = doc(collection(FIRESTORE_DB, collectionName),
+            session.id);
+        await updateDoc(docRef, {
+            ...session,
+            endTime: endTime,
+        });
+        console.log('Session ', session.id, 'closed');
+      
+        return {
+            ...session,
+            endTime: endTime,
+        };
+    } catch (error) {
+        console.error('Error closing session', session.id, error);
+        throw error;
+    }
+  },
+
+  // Close a session (log out of work)
+  async closeAllSessionsForOwner(collectionName: string, owner: string) {
+    try {
+        const openSessions = await firestoreService.getAllOpenSessionsByOwner(
+            collectionName, owner);
+        if (openSessions) {
+            for (const openSession of openSessions) {
+                console.log("Calling closeSession for session", openSession.id);
+                await firestoreService.closeSession(
+                    collectionName, openSession);
+            };
+        };
+    } catch (e) {
+        console.error('Error closing sessions', e);
     };
   },
 

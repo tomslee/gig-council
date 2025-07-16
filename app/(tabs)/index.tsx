@@ -30,6 +30,12 @@ export const CATEGORIES = [
   { value: 'catadmin', label: 'Admin', payable: false },
   { value: 'catidle', label: 'Available', payable: false },
 ];
+
+export enum Collection {
+      assignment = "assignment",
+      session = "session",
+};
+
 export interface Assignment {
   id?: string;
   owner: string;
@@ -37,7 +43,14 @@ export interface Assignment {
   category?: string;
   startTime: Date | null;
   endTime: Date | null;
-}
+};
+
+export interface Session {
+  id?: string;
+  owner: string;
+  startTime: Date | null;
+  endTime: Date | null;
+};
 /*
  * End of exports
  */
@@ -59,13 +72,14 @@ export default function HomeScreen() {
   useEffect(() => {
     setLoading(true);
     setDocList([]);
+    console.log("userData: ", userData);
     const fetchData = async () => {
       // Get the stored Username
       try {
         const storedUsername = await AsyncStorage.getItem('@storedUsername'); // '@storedUsername' is the key
         if (storedUsername) {
           // setStoredUsername(storedUsername);
-          setUserData(prev => ({
+          await setUserData(prev => ({
             ...prev,
             username: storedUsername,
             storedUsername: storedUsername
@@ -73,9 +87,9 @@ export default function HomeScreen() {
         };
         // Get any open assignments for the user
         try {
-          if (userData.username !== '') {
+          if (userData.username) {
             if (isFocused) {
-              const assignments = await firestoreService.getAllOpenAssignmentsByOwner('gig-council', userData.username);
+              const assignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userData.username);
               if (assignments) {
                 for(const assignment of assignments) {
                   docList.push(assignment)
@@ -160,13 +174,21 @@ export default function HomeScreen() {
       console.log("localUsername=", localUsername);
       await firebaseSignIn();
       await AsyncStorage.setItem('@storedUsername', trimmedUsername);
-      // setStoredUsername(trimmedUsername);
+      const newSession: Session = {
+        "owner": userData.username,
+        startTime: null,
+        endTime: null
+      };
+      await firestoreService.closeAllSessionsForOwner(Collection.session, userData.username);
+      const session = await firestoreService.createSession(Collection.session, newSession);
       setUserData({
         username: trimmedUsername,
         storedUsername: trimmedUsername,
-        isSignedIn: true
+        sessionID: session.id,
+        isOnAssignment: false,
       });
-      console.log("Signed in user:", trimmedUsername);
+      console.log("Signing in: userData=", userData);
+      console.log("Signed in", userData.username, "to session", session.id);
     } catch (error) {
       console.error('Error signing in:', error);
     }
@@ -178,7 +200,7 @@ export default function HomeScreen() {
         try {
           if (isFocused) {
             const assignments = await firestoreService.getAllOpenAssignmentsByOwner(
-              'gig-council',
+              Collection.assignment,
               userData.username);
             if (assignments) {
               for (const assignment of assignments) {
@@ -209,7 +231,7 @@ export default function HomeScreen() {
 
   const closeAssignments = async () => {
     try {
-      await firestoreService.closeAllAssignmentsForOwner('gig-council', userData.username);
+      await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
       setDocList([]);
     } catch ( error ) {
       console.error("Error closing assignments. ", error);
@@ -219,26 +241,20 @@ export default function HomeScreen() {
   const appSignOut = async () => {
     try {
       setDocList([]);
-      await firestoreService.closeAllAssignmentsForOwner('gig-council', userData.username);
+      await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
       await firebaseSignOut();
+      await firestoreService.closeAllSessionsForOwner(Collection.session, userData.username);
       // Set the local user name to empty. But the storedUsername has
       // not been changed, so don't update that.
-      setUserData(prev => ({
-        ...prev,
+      setUserData({
+        ...userData,
         username: '',
-        isSignedIn: false
-      }));
+        sessionID: '',
+        isOnAssignment: false
+      });
       console.log('Signed out of application. Stored user name is', userData.storedUsername);
     } catch (error) {
       console.error('Error signing out:', error);
-    }
-  };
-
-  const deleteLocalUserName = async () => {
-    try {
-      AsyncStorage.removeItem('@storedUsername');
-    } catch (error) {
-      console.error('Error deleting username:', error);
     }
   };
 
@@ -258,26 +274,32 @@ export default function HomeScreen() {
       >
         <View style={styles.formContainer}>
           {/* Welcome banner */}
-          {userData.isSignedIn ? (
+          {(userData.sessionID && !userData.isOnAssignment ) ? (
             <View style={styles.bannerSection}>
               <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.storedUsername}.</Text>
-              <Text style={styles.bannerText} >You are now online and available for work assignments.</Text>
+              <Text style={styles.bannerText} >You are now available for work assignments.</Text>
             </View>
-          ) : (
+          ) : null}
+          {(userData.sessionID && userData.isOnAssignment) ? (
+            <View style={styles.bannerSection}>
+              <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.storedUsername}.</Text>
+            </View>
+          ) : null}
+          {( !userData.sessionID ) ? (
             <View style={styles.bannerSection}>
               <Text style={styles.bannerText}>Welcome to the Gig Council Challenge.</Text>
-              <Text style={styles.bannerText} >Please sign in.</Text>
+              <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
             </View>
-          )}
+          ) : null}
 
           {/* Sign in section */}
-          {userData.isSignedIn ? (null) : (
+          {!userData.sessionID ? (
             <View style={styles.section}>
               <TextInput
                 style={styles.textInput}
                 onChangeText={setLocalUsername}
                 value={localUsername}
-                placeholder={(userData.storedUsername === '') ? "Type a user name..." : userData.storedUsername}
+                placeholder={(userData.storedUsername) ? "Type a user name..." : userData.storedUsername}
                 defaultValue={userData.storedUsername}
                 id="id-set-user-name"
               />
@@ -288,10 +310,10 @@ export default function HomeScreen() {
                 <Text style={styles.saveButtonText}>Sign In</Text>
               </TouchableOpacity>
             </View>
-          )}
+          ) : null }
 
           {/* Open assignments */}
-          {(userData.isSignedIn && (docList.length > 0)) ? (
+          {(userData.sessionID && docList && docList.length > 0) ? (
             <View style={styles.section}>
               {/* console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString()) */}
               <Text style={styles.label}>Current assignment...</Text>
@@ -321,7 +343,7 @@ export default function HomeScreen() {
           ) : null}
 
           {/* Start an assignment Button */}
-          {userData.isSignedIn ? (
+          {userData.sessionID ? (
             <View style={styles.section}>
               <TouchableOpacity
                 style={styles.saveButton}
@@ -336,7 +358,7 @@ export default function HomeScreen() {
           ) : null}
 
           {/* Sign out Button */}
-          {userData.isSignedIn ? (
+          {userData.sessionID ? (
             <View style={styles.section}>
               <TouchableOpacity
                 style={styles.saveButton}
@@ -409,6 +431,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     elevation: 1,
     backgroundColor: '#ffffff',
+    borderRadius: 8, // Slightly rounded corners
   },
   bannerText: {
     fontSize: 20,
@@ -455,13 +478,5 @@ const styles = StyleSheet.create({
     borderRadius: 8, // Slightly rounded corners
     borderWidth: 1,
     borderColor: '#E0E0E0', // Light gray border
-    // Or, for shadow:
-    boxShadow: [{
-      color: '#E0E0E0',
-      offsetX: 0,
-      offsetY: 2,
-      blurRadius: 4,
-    }],
-    elevation: 2,
   }
 });

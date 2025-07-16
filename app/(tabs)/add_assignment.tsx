@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { Assignment } from './index';
+import { Assignment, Collection } from './index';
 import { useUserContext } from '../../contexts/UserContext';
 import { firestoreService } from '../../services/firestoreService';
 
@@ -23,7 +23,7 @@ export default function AddAssignment() {
     startTime: null,
     endTime: null,
   });
-  const { userData } = useUserContext();
+  const { userData, setUserData } = useUserContext();
 
 
   const handleInputChange = (field: string, value: string) => {
@@ -37,7 +37,7 @@ export default function AddAssignment() {
     console.log("In addAssignment");
     // Close any open assignments
     try {
-      await firestoreService.closeAllAssignmentsForOwner('gig-council', userData.username);
+      await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
     } catch (e) {
       console.error('Error closing open assignments', e);
     };
@@ -45,13 +45,17 @@ export default function AddAssignment() {
     // Add the new assignment
     try {
       const newAssignment: Assignment = {
-        owner: userData["username"],
+        owner: userData.username,
         description: formData.description,
         category: formData.category,
         startTime: null,
         endTime: null,
       };
-      await firestoreService.createAssignment('gig-council', newAssignment);
+      await firestoreService.createAssignment(Collection.assignment, newAssignment);
+      setUserData(prev => ({
+            ...prev,
+            isOnAssignment: true
+      }));
     } catch (e) {
       console.error('Error adding assignment: ', e);
     };
@@ -122,11 +126,11 @@ export default function AddAssignment() {
 
           {/* Start Button */}
           <TouchableOpacity
-            style={[styles.saveButton, !userData.isSignedIn && styles.disabledButton]}
+            style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
             onPress={addAssignment}
-            disabled={!userData.isSignedIn}>
+            disabled={!userData.sessionID}>
             <Text style={styles.saveButtonText}>
-              {userData.isSignedIn ? 'Start Assignment' : 'You must sign in to start an assignment'}
+              {userData.sessionID !== "" ? 'Start Assignment' : 'You must sign in to start an assignment'}
             </Text>
           </TouchableOpacity>
         </View>

@@ -8,7 +8,7 @@ import {
     SafeAreaView,
     ScrollView
 } from 'react-native';
-import { CATEGORIES } from './index';
+import { Collection, CATEGORIES } from './index';
 import { firestoreService } from '../../services/firestoreService';
 import { useIsFocused } from "@react-navigation/native";
 import { useUserContext } from '../../contexts/UserContext';
@@ -17,7 +17,7 @@ export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
-    const { userData } = useUserContext();
+    const { userData, setUserData } = useUserContext();
     const [docList, setDocList] = useState([{}]);
 
     type DailyPayReport = {
@@ -48,7 +48,6 @@ export default function ReportScreen() {
             for (const category of CATEGORIES) {
                 payReport["categoryMinutes"][category["label"]] = 0;
                 payReport["categoryAssignments"][category["label"]] = 0;
-                console.log("Setting categoryMinutes to zero for", category["label"]);
             };
             payReport["totalMinutes"] = 0;
             payReport["paidMinutes"] = 0;
@@ -56,7 +55,7 @@ export default function ReportScreen() {
             payReport["paidAssignments"] = 0;
             if (isFocused) {
                 try {
-                    const assignments = await firestoreService.getAllAssignmentsByOwner('gig-council',
+                    const assignments = await firestoreService.getAllAssignmentsByOwner(Collection.assignment,
                         userData.username);
                     console.log("Fetched ", assignments?.length, "for report");
                     if (assignments) {
@@ -101,6 +100,7 @@ export default function ReportScreen() {
                             };
                         };
                         console.log("Report includes ", docList.length, " assignments");
+                        console.log("userData is", userData);
                         setPayReport(payReport);
                         setDocList(docList);
                         setRefresh(!refresh);
@@ -123,7 +123,7 @@ export default function ReportScreen() {
         );
     };
 
-    if (!userData.isSignedIn) {
+    if (!userData.sessionID){
         return (
             <SafeAreaView style={styles.safeAreaContainer}>
                 <KeyboardAvoidingView

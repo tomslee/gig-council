@@ -4,7 +4,8 @@ import React, { createContext, useState, useContext, ReactNode } from 'react';
 interface UserData {
     username: string,
     storedUsername: string,
-    isSignedIn: boolean,
+    sessionID: string,
+    isOnAssignment: boolean,
 }
 interface UserContextType {
     userData: UserData;
@@ -17,7 +18,12 @@ interface UserContextProviderProps {
 }
 
 export const UserContextProvider: React.FC<UserContextProviderProps> = ({ children }) => {
-    const [userData, setUserData] = useState({ username: '', storedUsername: '', isSignedIn: false });
+    const [userData, setUserData] = useState({
+        username: '',
+        storedUsername: '',
+        sessionID: "",
+        isOnAssignment: false,
+    });
     const contextValue: UserContextType = {
     userData,
     setUserData,
