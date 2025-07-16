@@ -1,15 +1,4 @@
 import CategoryPicker from '@/components/CategoryPicker';
-import {
-  collection,
-  doc,
-  addDoc,
-  Timestamp,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-  serverTimestamp
-} from 'firebase/firestore';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
@@ -22,15 +11,16 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { FIRESTORE_DB} from '../../lib/firebase';
+import { Assignment } from './index';
 import { useUserContext } from '../../contexts/UserContext';
+import { firestoreService } from '../../services/firestoreService';
 
 export default function AddAssignment() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     description: "",
     category: "Admin",
-    startTime: Timestamp.fromDate(new Date()),
+    startTime: null,
     endTime: null,
   });
   const { userData } = useUserContext();
@@ -47,33 +37,21 @@ export default function AddAssignment() {
     console.log("In addAssignment");
     // Close any open assignments
     try {
-      const q = query(collection(FIRESTORE_DB, "gig-council"), where('endTime', '==', null),
-        where('owner', '==', userData["username"])
-      );
-      const querySnapshot = await getDocs(q);
-      // ... process documents
-      for (const doc of querySnapshot.docs) {
-        const docRef = doc.ref; // Get a reference to the document
-        await updateDoc(docRef, {
-          endTime: serverTimestamp() // The field and its new value
-        });
-        console.log('Assignment ', doc.id, 'closed.');
-      };
+      await firestoreService.closeAllAssignmentsForOwner('gig-council', userData.username);
     } catch (e) {
-      console.error('Error closing assignment', doc.id, ': ', e);
+      console.error('Error closing open assignments', e);
     };
 
     // Add the new assignment
     try {
-      const activeDocRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'),
-        {
-          owner: userData["username"],
-          description: formData.description,
-          category: formData.category,
-          startTime: serverTimestamp(),
-          endTime: null,
-        });
-      console.log('Uploaded assignment: ID=', activeDocRef.id, ', category=', formData.category, "owner=", userData["username"]);
+      const newAssignment: Assignment = {
+        owner: userData["username"],
+        description: formData.description,
+        category: formData.category,
+        startTime: null,
+        endTime: null,
+      };
+      await firestoreService.createAssignment('gig-council', newAssignment);
     } catch (e) {
       console.error('Error adding assignment: ', e);
     };
@@ -83,7 +61,7 @@ export default function AddAssignment() {
       setFormData({
         description: "",
         category: "",
-        startTime: Timestamp.fromDate(new Date()),
+        startTime: null,
         endTime: null,
       });
       router.navigate('/'); // Navigate to the Home Screen

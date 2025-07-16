@@ -42,7 +42,8 @@ export default function ReportScreen() {
     });
 
     useEffect(() => {
-        const fetchData = async () => {
+        // fetch the assignments for this user and construct the report
+        const constructReport = async () => {
             setDocList([{}]);
             for (const category of CATEGORIES) {
                 payReport["categoryMinutes"][category["label"]] = 0;
@@ -55,74 +56,64 @@ export default function ReportScreen() {
             payReport["paidAssignments"] = 0;
             if (isFocused) {
                 try {
-                    const snapshot = await firestoreService.getAllAssignmentsByOwner('gig-council', userData.username);
-                    snapshot.forEach(assignment => {
-                        if (assignment.endTime == null) {
-                            return;
-                        }
-                        const docCategory = assignment.category;
-                        const docDescription = assignment.description;
-                        // doc.data() is never undefined for query doc snapshots
-                        if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
-                            docList.push({
-                                "id": assignment.id,
-                                "category": docCategory,
-                                "description": docDescription
-                            });
-                            console.log("Downloading ", assignment.id,
-                                "=>", docCategory,
-                                "=>", docDescription
-                            );
-                        };
-                        const minutes = Math.abs(assignment.endTime.toDate() -
-                            assignment.startTime.toDate()) / (60000.0) || 0;
-                        console.log("Elapsed time:", minutes);
-                        if (minutes > 0 && docCategory != "") {
-                            payReport["categoryMinutes"][docCategory] += minutes;
-                            payReport["categoryAssignments"][docCategory] += 1;
-                        };
-                        const thisCategory = CATEGORIES.find(item => item["label"] === docCategory) || {};
-                        if ("label" in thisCategory && "payable" in thisCategory) {
-                            console.log("thisCategory = " + thisCategory["label"] + ", " + minutes + " minutes");
-                            if (minutes > 0) {
-                                payReport["totalMinutes"] += minutes;
-                                payReport["totalAssignments"] += 1;
-                                if (thisCategory["payable"]) {
-                                    payReport["paidMinutes"] += minutes;
-                                    payReport["paidAssignments"] += 1;
-                                }
+                    const assignments = await firestoreService.getAllAssignmentsByOwner('gig-council',
+                        userData.username);
+                    console.log("Fetched ", assignments?.length, "for report");
+                    if (assignments) {
+                        for (const assignment of assignments) {
+                            if (assignment.endTime == null) {
+                                console.log("Unfinished assignment, id=", assignment.id);
+                                continue;
+                            };
+                            const docCategory = assignment.category;
+                            const docDescription = assignment.description;
+                            // doc.data() is never undefined for query doc snapshots
+                            if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
+                                docList.push({
+                                    "id": assignment.id,
+                                    "category": docCategory,
+                                    "description": docDescription
+                                });
+                                console.log("Adding ", assignment.id,
+                                    "=>", docCategory,
+                                    "=>", docDescription,
+                                    "to report"
+                                );
+                            };
+                            const minutes = Math.abs(assignment.endTime.toDate().getTime() -
+                                assignment.startTime.toDate().getTime()) / (60000.0) || 0;
+                            console.log("Assignment id=", assignment.id, "has duration", minutes);
+                            if (minutes > 0 && docCategory && docCategory !== "") {
+                                payReport["categoryMinutes"][docCategory] += minutes;
+                                payReport["categoryAssignments"][docCategory] += 1;
+                            };
+                            const thisCategory = CATEGORIES.find(item => item["label"] === docCategory) || {};
+                            if ("label" in thisCategory && "payable" in thisCategory) {
+                                console.log("thisCategory = " + thisCategory["label"] + ", " + minutes + " minutes");
+                                if (minutes > 0) {
+                                    payReport["totalMinutes"] += minutes;
+                                    payReport["totalAssignments"] += 1;
+                                    if (thisCategory["payable"]) {
+                                        payReport["paidMinutes"] += minutes;
+                                        payReport["paidAssignments"] += 1;
+                                    }
+                                };
                             };
                         };
-                    });
-                    console.log("A total of " + docList.length + " assignments");
-                    setPayReport(payReport);
-                    setDocList(docList);
-                    setRefresh(!refresh);
+                        console.log("Report includes ", docList.length, " assignments");
+                        setPayReport(payReport);
+                        setDocList(docList);
+                        setRefresh(!refresh);
+                    }; // if (assignment)
                 } catch (err) {
                     console.error(err);
                 } finally {
                     setLoading(false);
-                }
+                };
             };
         };
-        fetchData();
+        constructReport();
     }, [isFocused]);
-
-    /*
-    const renderItem = ({ item }: ListRenderItemInfo<DisplayItem>) => {
-        return (
-            <TouchableOpacity
-                style={[
-                    styles.reportItem,
-                    item.id === selectedItem?.id && styles.selectedListItem,
-                ]}
-                onPress={() => setSelectedItem(item)}
-            >
-                <Text style={styles.reportItemText}>{item["description"]}</Text>
-            </TouchableOpacity>
-        );
-    };
-    */
 
     if (loading) {
         return (

@@ -40,12 +40,13 @@ export const CATEGORIES = [
   { value: 'catidle', label: 'Available', payable: false },
 ];
 export interface Assignment {
+  forEach(arg0: (assignment: Assignment) => void): unknown;
   id?: string;
   owner: string;
   description?: string;
   category?: string;
   startTime: Timestamp;
-  endTime: Timestamp;
+  endTime: Timestamp | null;
 }
 /*
  * End of exports
@@ -82,19 +83,21 @@ export default function HomeScreen() {
         };
         // Get any open assignments for the user
         try {
-          if (userData.username != '') {
+          if (userData.username !== '') {
             if (isFocused) {
               const snapshot = await firestoreService.getAllOpenAssignmentsByOwner('gig-council', userData.username);
-              snapshot.forEach(assignment => {
+              if (snapshot) {
+                snapshot.forEach((assignment: Assignment) => {
                   docList.push(assignment)
                   console.log("Fetching ", assignment.id,
                     ", ", assignment.description,
                     ", ", assignment.category,
                     ", ", assignment.startTime["seconds"]);
-              });
-              console.log("Fetched", docList.length, "unfinished assignments");
-              setDocList(docList);
-              setRefresh(!refresh);
+                });
+                console.log("Fetched", docList.length, "unfinished assignments");
+                setDocList(docList);
+                setRefresh(!refresh);
+              };
             }; // if isFocused
           }; // if userData.username
         } catch (error) {
@@ -184,14 +187,18 @@ export default function HomeScreen() {
       if (isFocused) {
         try {
           if (isFocused) {
-            const snapshot = await firestoreService.getAllOpenAssignmentsByOwner('gig-council', userData.username);
-            snapshot.forEach(assignment => {
-                docList.push(assignment)
+            const assignments = await firestoreService.getAllOpenAssignmentsByOwner(
+              'gig-council',
+              userData.username);
+            if (assignments) {
+              for (const assignment of assignments) {
+                docList.push(assignment);
                 console.log("Fetching ", assignment.id,
                   ", ", assignment.description,
                   ", ", assignment.category,
                   ", ", assignment.startTime["seconds"]);
-            });
+              };
+            };
             console.log("Fetched", docList.length, "unfinished assignments");
             setDocList(docList);
             setRefresh(!refresh);
@@ -210,11 +217,12 @@ export default function HomeScreen() {
     }
   };
 
-  const closeAssignment = async () => {
+  const closeAssignments = async () => {
     try {
       setDocList([]);
       // Close any open assignments
         const q = query(collection(FIRESTORE_DB, "gig-council"),
+          where('owner', '==', userData.username),
           where('endTime', '==', null));
         const querySnapshot = await getDocs(q);
         // ... process documents
@@ -251,7 +259,7 @@ export default function HomeScreen() {
         console.error(`Error closing assignment {docRef.id}: `, e);
       };
       */
-      await closeAssignment();
+      await closeAssignments();
       await firebaseSignOut();
       // Set the local user name to empty. But the storedUsername has
       // not been changed, so don't update that.
@@ -260,7 +268,7 @@ export default function HomeScreen() {
         username: '',
         isSignedIn: false
       }));
-      console.log('Signed out of application. Stored user name is', storedUsername);
+      console.log('Signed out of application. Stored user name is', userData.storedUsername);
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -346,7 +354,7 @@ export default function HomeScreen() {
               </View>
               <TouchableOpacity
                 style={styles.saveButton}
-                onPress={closeAssignment} >
+                onPress={closeAssignments} >
                 <Text style={styles.saveButtonText}>Close this assignment</Text>
               </TouchableOpacity>
             </View>

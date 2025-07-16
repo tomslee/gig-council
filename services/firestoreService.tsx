@@ -6,29 +6,26 @@ import {
   getDoc, 
   query, 
   where, 
-  orderBy, 
-  limit, 
-  startAfter,
   addDoc,
   updateDoc,
   deleteDoc,
-  onSnapshot,
-  FieldPath
+  serverTimestamp,
 } from 'firebase/firestore';
 import { FIRESTORE_DB } from '../lib/firebase';
+import { Assignment } from '../app/(tabs)/index';
 
 export const firestoreService = {
 
   // Get all documents owned by one user
     async getAllAssignmentsByOwner(collectionName: string, owner: string) {
         try {
-            const q = query(collection(FIRESTORE_DB, "gig-council"),
+            const q = query(collection(FIRESTORE_DB, collectionName),
                 where('owner', '==', owner));
             const snapshot = await getDocs(q);
             return snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
-            }));
+            })) as Assignment[];
         }  catch (error) {
             console.error('Error getting documents ', error);
         };
@@ -37,14 +34,14 @@ export const firestoreService = {
   // Get all open documents owned by one user
     async getAllOpenAssignmentsByOwner(collectionName: string, owner: string) {
         try {
-            const q = query(collection(FIRESTORE_DB, "gig-council"),
+            const q = query(collection(FIRESTORE_DB, collectionName),
                 where('owner', '==', owner),
             where('endTime', '==', null));
             const snapshot = await getDocs(q);
             return snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
-            }));
+            })) as Assignment[];
         }  catch (error) {
             console.error('Error getting documents ', error);
         };
@@ -70,105 +67,60 @@ export const firestoreService = {
     }
   },
 
-  // Query with filters
-  async queryWhere(collectionName: string, filters = [], orderByField = null, limitCount = null) {
-    try {
-      const collectionRef = collection(FIRESTORE_DB, collectionName);
-      let q = collectionRef;
-
-      // Apply where filters
-      filters.forEach(filter => {
-        q = query(q, where(filter.field, filter.operator, filter.value));
-      });
-
-      // Apply ordering
-      if (orderByField) {
-        q = query(q, orderBy(orderByField.field, orderByField.direction || 'asc'));
-      }
-
-      // Apply limit
-      if (limitCount) {
-        q = query(q, limit(limitCount));
-      }
-
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-    } catch (error) {
-      console.error(`Error querying ${collectionName}:`, error);
-      throw error;
-    }
-  },
-
-  // Paginated query
-  async queryPaginated(collectionName: string, options = {}) {
-    try {
-      const {
-        filters = [],
-        orderByField = null,
-        limitCount = 10,
-        lastDoc = null
-      } = options;
-
-      const collectionRef = collection(FIRESTORE_DB, collectionName);
-      let q = collectionRef;
-
-      // Apply filters
-      filters.forEach((filter: { field: string | FieldPath; operator: string; value: unknown; }) => {
-        return q = query(q, where(filter.field, filter.operator, filter.value));
-      });
-
-      // Apply ordering (required for pagination)
-      if (orderByField) {
-        q = query(q, orderBy(orderByField.field, orderByField.direction || 'asc'));
-      }
-
-      // Apply pagination
-      if (lastDoc) {
-        q = query(q, startAfter(lastDoc));
-      }
-
-      q = query(q, limit(limitCount));
-
-      const snapshot = await getDocs(q);
-      const results = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      return {
-        data: results,
-        lastDoc: snapshot.docs[snapshot.docs.length - 1], // For next page
-        hasMore: snapshot.docs.length === limitCount
-      };
-    } catch (error) {
-      console.error(`Error with paginated query:`, error);
-      throw error;
-    }
-  },
-
   // Create a new document
-  async create(collectionName: string, data: any) {
+  async createAssignment(collectionName: string, newAssignment: Assignment) {
     try {
       const collectionRef = collection(FIRESTORE_DB, collectionName);
       const docRef = await addDoc(collectionRef, {
-        ...data,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        ...newAssignment,
+          startTime: serverTimestamp()
       });
-      
+      console.log(`Created assignment id=`, docRef.id);
       return {
         id: docRef.id,
-        ...data,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        ...newAssignment,
+        startTime: serverTimestamp()
       };
     } catch (error) {
-      console.error(`Error creating document:`, error);
+      console.error(`Error creating assignment:`, error);
       throw error;
     }
+  },
+
+  // Close an assignment
+  async closeAssignment(collectionName: string, assignment: Assignment) {
+    try {
+        const docRef = doc(collection(FIRESTORE_DB, collectionName),
+            assignment.id);
+        await updateDoc(docRef, {
+            ...assignment,
+            endTime: serverTimestamp()
+        });
+        console.log('Assignment ', doc.bind, 'closed');
+      
+        return {
+            ...assignment,
+            endTime: serverTimestamp()
+        };
+    } catch (error) {
+        console.error(`Error updating document:`, error);
+        throw error;
+    }
+  },
+
+  async closeAllAssignmentsForOwner(collectionName: string, owner: string) {
+    try {
+        const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(
+            collectionName, owner);
+        if (openAssignments) {
+            for (const openAssignment of openAssignments) {
+                await firestoreService.closeAssignment(
+                    collectionName, openAssignment);
+            };
+        };
+    } catch (e) {
+        console.error(`Error closing assignment {docRef.id}: `, e);
+    };
   },
 
   // Update a document
@@ -203,43 +155,6 @@ export const firestoreService = {
     }
   },
 
-  // Real-time listener
-  subscribe(collectionName: string, callback: (arg0: { id: string; }[]) => void, options = {}) {
-    try {
-      const { filters = [], orderByField = null, limitCount = null } = options;
-      
-      const collectionRef = collection(FIRESTORE_DB, collectionName);
-      let q = collectionRef;
-
-      // Apply filters
-      filters.forEach(filter => {
-        q = query(q, where(filter.field, filter.operator, filter.value));
-      });
-
-      // Apply ordering
-      if (orderByField) {
-        q = query(q, orderBy(orderByField.field, orderByField.direction || 'asc'));
-      }
-
-      // Apply limit
-      if (limitCount) {
-        q = query(q, limit(limitCount));
-      }
-
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const results = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        callback(results);
-      });
-
-      return unsubscribe; // Return function to unsubscribe
-    } catch (error) {
-      console.error(`Error setting up listener:`, error);
-      throw error;
-    }
-  }
 };
 
 // Example usage:
