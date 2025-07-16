@@ -13,17 +13,8 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import {
-  collection,
-  serverTimestamp,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-  Timestamp
-} from "firebase/firestore";
 import { signInAnonymously, signOut } from "firebase/auth";
-import { FIRESTORE_DB, FIREBASE_AUTH } from '../../lib/firebase';
+import { FIREBASE_AUTH } from '../../lib/firebase';
 import { firestoreService } from '../../services/firestoreService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -40,13 +31,12 @@ export const CATEGORIES = [
   { value: 'catidle', label: 'Available', payable: false },
 ];
 export interface Assignment {
-  forEach(arg0: (assignment: Assignment) => void): unknown;
   id?: string;
   owner: string;
   description?: string;
   category?: string;
-  startTime: Timestamp;
-  endTime: Timestamp | null;
+  startTime: Date | null;
+  endTime: Date | null;
 }
 /*
  * End of exports
@@ -85,15 +75,15 @@ export default function HomeScreen() {
         try {
           if (userData.username !== '') {
             if (isFocused) {
-              const snapshot = await firestoreService.getAllOpenAssignmentsByOwner('gig-council', userData.username);
-              if (snapshot) {
-                snapshot.forEach((assignment: Assignment) => {
+              const assignments = await firestoreService.getAllOpenAssignmentsByOwner('gig-council', userData.username);
+              if (assignments) {
+                for(const assignment of assignments) {
                   docList.push(assignment)
                   console.log("Fetching ", assignment.id,
                     ", ", assignment.description,
                     ", ", assignment.category,
-                    ", ", assignment.startTime["seconds"]);
-                });
+                    ", ", assignment.startTime);
+                };
                 console.log("Fetched", docList.length, "unfinished assignments");
                 setDocList(docList);
                 setRefresh(!refresh);
@@ -196,7 +186,7 @@ export default function HomeScreen() {
                 console.log("Fetching ", assignment.id,
                   ", ", assignment.description,
                   ", ", assignment.category,
-                  ", ", assignment.startTime["seconds"]);
+                  ", ", assignment.startTime);
               };
             };
             console.log("Fetched", docList.length, "unfinished assignments");
@@ -219,47 +209,17 @@ export default function HomeScreen() {
 
   const closeAssignments = async () => {
     try {
+      await firestoreService.closeAllAssignmentsForOwner('gig-council', userData.username);
       setDocList([]);
-      // Close any open assignments
-        const q = query(collection(FIRESTORE_DB, "gig-council"),
-          where('owner', '==', userData.username),
-          where('endTime', '==', null));
-        const querySnapshot = await getDocs(q);
-        // ... process documents
-        for (const doc of querySnapshot.docs) {
-          const docRef = doc.ref; // Get a reference to the document
-          await updateDoc(docRef, {
-            endTime: serverTimestamp() // The field and its new value
-          });
-          console.log("Assignment closed:", doc.id);
-        };
-    } catch (e) {
-        console.error(`Error closing assignment {docRef.id}: `, e);
+    } catch ( error ) {
+      console.error("Error closing assignments. ", error);
     };
   };
 
   const appSignOut = async () => {
     try {
       setDocList([]);
-      // Close any open assignments
-      /*
-      try {
-        const q = query(collection(FIRESTORE_DB, "gig-council"),
-          where('endTime', '==', null));
-        const querySnapshot = await getDocs(q);
-        // ... process documents
-        for (const doc of querySnapshot.docs) {
-          const docRef = doc.ref; // Get a reference to the document
-          await updateDoc(docRef, {
-            endTime: serverTimestamp() // The field and its new value
-          });
-          console.log("Assignment closed:", doc.id);
-        };
-      } catch (e) {
-        console.error(`Error closing assignment {docRef.id}: `, e);
-      };
-      */
-      await closeAssignments();
+      await firestoreService.closeAllAssignmentsForOwner('gig-council', userData.username);
       await firebaseSignOut();
       // Set the local user name to empty. But the storedUsername has
       // not been changed, so don't update that.
@@ -317,7 +277,7 @@ export default function HomeScreen() {
                 style={styles.textInput}
                 onChangeText={setLocalUsername}
                 value={localUsername}
-                placeholder={(userData.storedUsername == '') ? "Type a user name..." : userData.storedUsername}
+                placeholder={(userData.storedUsername === '') ? "Type a user name..." : userData.storedUsername}
                 defaultValue={userData.storedUsername}
                 id="id-set-user-name"
               />
@@ -344,7 +304,7 @@ export default function HomeScreen() {
                 </Text>
                 {docList[docList.length - 1]["startTime"] ? (
                   <Text style={styles.listItemText}>
-                    Started at {(docList[docList.length - 1]["startTime"]).toDate()
+                    Started at {docList[docList.length - 1]["startTime"]
                       .toLocaleTimeString(undefined, {
                         hour: '2-digit',
                         minute: '2-digit',

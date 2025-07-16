@@ -9,7 +9,6 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { FIRESTORE_DB } from '../lib/firebase';
 import { Assignment } from '../app/(tabs)/index';
@@ -25,6 +24,8 @@ export const firestoreService = {
             return snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
+                startTime: doc.data().startTime.toDate(), 
+                endTime: doc.data().endTime ? doc.data().endTime.toDate() : null,
             })) as Assignment[];
         }  catch (error) {
             console.error('Error getting documents ', error);
@@ -36,11 +37,12 @@ export const firestoreService = {
         try {
             const q = query(collection(FIRESTORE_DB, collectionName),
                 where('owner', '==', owner),
-            where('endTime', '==', null));
+                where('endTime', '==', null));
             const snapshot = await getDocs(q);
             return snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
+                startTime: doc.data().startTime.toDate(), 
             })) as Assignment[];
         }  catch (error) {
             console.error('Error getting documents ', error);
@@ -56,7 +58,9 @@ export const firestoreService = {
       if (docSnap.exists()) {
         return {
           id: docSnap.id,
-          ...docSnap.data()
+          ...docSnap.data(),
+          startTime: docSnap.data().startTime.toDate(), 
+          endTime: docSnap.data().endTime ? docSnap.data().endTime.toDate() : null, 
         };
       } else {
         return null;
@@ -70,19 +74,20 @@ export const firestoreService = {
   // Create a new document
   async createAssignment(collectionName: string, newAssignment: Assignment) {
     try {
-      const collectionRef = collection(FIRESTORE_DB, collectionName);
-      const docRef = await addDoc(collectionRef, {
-        ...newAssignment,
-          startTime: serverTimestamp()
-      });
-      console.log(`Created assignment id=`, docRef.id);
-      return {
-        id: docRef.id,
-        ...newAssignment,
-        startTime: serverTimestamp()
-      };
+        const collectionRef = collection(FIRESTORE_DB, collectionName);
+        const startTime = new Date();
+        const docRef = await addDoc(collectionRef, {
+            ...newAssignment,
+            startTime: startTime,
+        });
+        console.log(`Created assignment id=`, docRef.id);
+        return {
+            id: docRef.id,
+            ...newAssignment,
+            startTime: startTime,
+        };
     } catch (error) {
-      console.error(`Error creating assignment:`, error);
+        console.error(`Error creating assignment:`, error);
       throw error;
     }
   },
@@ -92,15 +97,16 @@ export const firestoreService = {
     try {
         const docRef = doc(collection(FIRESTORE_DB, collectionName),
             assignment.id);
+        const endTime = new Date();
         await updateDoc(docRef, {
             ...assignment,
-            endTime: serverTimestamp()
+            endTime: endTime,
         });
-        console.log('Assignment ', doc.bind, 'closed');
+        console.log('Assignment ', assignment.id, 'closed');
       
         return {
             ...assignment,
-            endTime: serverTimestamp()
+            endTime: endTime,
         };
     } catch (error) {
         console.error(`Error updating document:`, error);

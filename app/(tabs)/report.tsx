@@ -80,8 +80,8 @@ export default function ReportScreen() {
                                     "to report"
                                 );
                             };
-                            const minutes = Math.abs(assignment.endTime.toDate().getTime() -
-                                assignment.startTime.toDate().getTime()) / (60000.0) || 0;
+                            const minutes = Math.abs(assignment.endTime.getTime() -
+                                assignment.startTime.getTime()) / (60000.0) || 0;
                             console.log("Assignment id=", assignment.id, "has duration", minutes);
                             if (minutes > 0 && docCategory && docCategory !== "") {
                                 payReport["categoryMinutes"][docCategory] += minutes;
