@@ -22,7 +22,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { FIRESTORE_DB } from './index';
+import { FIRESTORE_DB} from '../../lib/firebase';
 import { useUserContext } from '../../contexts/UserContext';
 
 export default function AddAssignment() {

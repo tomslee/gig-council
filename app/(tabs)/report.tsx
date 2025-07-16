@@ -8,13 +8,8 @@ import {
     SafeAreaView,
     ScrollView
 } from 'react-native';
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-} from "firebase/firestore";
-import { FIRESTORE_DB, CATEGORIES } from './index';
+import { CATEGORIES } from './index';
+import { firestoreService } from '../../services/firestoreService';
 import { useIsFocused } from "@react-navigation/native";
 import { useUserContext } from '../../contexts/UserContext';
 
@@ -49,9 +44,6 @@ export default function ReportScreen() {
     useEffect(() => {
         const fetchData = async () => {
             setDocList([{}]);
-            const q = query(collection(FIRESTORE_DB, "gig-council"),
-                where('owner', '==', userData["username"])
-            );
             for (const category of CATEGORIES) {
                 payReport["categoryMinutes"][category["label"]] = 0;
                 payReport["categoryAssignments"][category["label"]] = 0;
@@ -63,27 +55,27 @@ export default function ReportScreen() {
             payReport["paidAssignments"] = 0;
             if (isFocused) {
                 try {
-                    const snapshot = await getDocs(q)
-                    snapshot.forEach((doc) => {
-                        if (doc.data()["endTime"] == null) {
+                    const snapshot = await firestoreService.getAllAssignmentsByOwner('gig-council', userData.username);
+                    snapshot.forEach(assignment => {
+                        if (assignment.endTime == null) {
                             return;
                         }
-                        const docCategory = doc.data()["category"];
-                        const docDescription = doc.data()["description"];
+                        const docCategory = assignment.category;
+                        const docDescription = assignment.description;
                         // doc.data() is never undefined for query doc snapshots
-                        if (docList.findIndex(obj => obj.id === doc.id) === -1) {
+                        if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
                             docList.push({
-                                "id": doc.id,
+                                "id": assignment.id,
                                 "category": docCategory,
                                 "description": docDescription
                             });
-                            console.log("Downloading ", doc.id,
+                            console.log("Downloading ", assignment.id,
                                 "=>", docCategory,
                                 "=>", docDescription
                             );
                         };
-                        const minutes = Math.abs(doc.data()["endTime"].toDate() -
-                            doc.data()["startTime"].toDate()) / (60000.0) || 0;
+                        const minutes = Math.abs(assignment.endTime.toDate() -
+                            assignment.startTime.toDate()) / (60000.0) || 0;
                         console.log("Elapsed time:", minutes);
                         if (minutes > 0 && docCategory != "") {
                             payReport["categoryMinutes"][docCategory] += minutes;

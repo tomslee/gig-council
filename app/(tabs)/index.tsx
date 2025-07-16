@@ -13,10 +13,8 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { initializeApp } from 'firebase/app';
 import {
   collection,
-  getFirestore,
   serverTimestamp,
   query,
   where,
@@ -24,26 +22,13 @@ import {
   updateDoc,
   Timestamp
 } from "firebase/firestore";
-import { getAuth, signInAnonymously, signOut } from "firebase/auth";
+import { signInAnonymously, signOut } from "firebase/auth";
+import { FIRESTORE_DB, FIREBASE_AUTH } from '../../lib/firebase';
+import { firestoreService } from '../../services/firestoreService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // End of imports
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBau3dXFlmkCcYQxLnz1TGSgUEw3BuH-nY",
-  authDomain: "gig-council.firebaseapp.com",
-  projectId: "gig-council",
-  storageBucket: "gig-council.firebasestorage.app",
-  messagingSenderId: "352321490111",
-  appId: "1:352321490111:web:49a7d8acc3f9bc11c50a0a"
-};
-
-// Initialize Firebase
-export const FIREBASE_APP = initializeApp(firebaseConfig);
-export const FIRESTORE_DB = getFirestore(FIREBASE_APP);
-export const FIREBASE_AUTH = getAuth(FIREBASE_APP);
 export const CATEGORIES = [
   { value: 'catcommittee', label: 'Committee meeting', payable: true },
   { value: 'catcon', label: 'Constituent Issue', payable: true },
@@ -96,41 +81,26 @@ export default function HomeScreen() {
           }));
         };
         // Get any open assignments for the user
-        if (userData.username != '') {
-          const q = query(collection(FIRESTORE_DB, "gig-council"),
-            where('endTime', '==', null),
-            where('owner', '==', userData.username));
-          console.log("retrieving assignments owned by ", userData.username);
-          if (isFocused) {
-            try {
-              const snapshot = await getDocs(q)
-              snapshot.forEach((doc) => {
-                // doc.data() is never undefined for query doc snapshots
-                if (docList.findIndex(obj => obj.id === doc.id) === -1) {
-                  docList.push({
-                    "id": doc.id,
-                    "owner": doc.data()["owner"],
-                    "category": doc.data()["category"],
-                    "description": doc.data()["description"],
-                    "startTime": doc.data()["startTime"],
-                    "endTime": doc.data()["endTime"]
-                  })
-                  console.log("Fetching ", doc.id,
-                    "=>", doc.data()["description"],
-                    "=>", doc.data()["category"],
-                    doc.data()["startTime"]["seconds"]);
-                };
+        try {
+          if (userData.username != '') {
+            if (isFocused) {
+              const snapshot = await firestoreService.getAllOpenAssignmentsByOwner('gig-council', userData.username);
+              snapshot.forEach(assignment => {
+                  docList.push(assignment)
+                  console.log("Fetching ", assignment.id,
+                    ", ", assignment.description,
+                    ", ", assignment.category,
+                    ", ", assignment.startTime["seconds"]);
               });
               console.log("Fetched", docList.length, "unfinished assignments");
               setDocList(docList);
               setRefresh(!refresh);
-            } catch (error) {
-              console.error("Error retrieving storedUsername:", error);
-            };
-          }; // if isFocused
-        }; // if userData.username
-      }
-      catch (error) {
+            }; // if isFocused
+          }; // if userData.username
+        } catch (error) {
+          console.error("Error retrieving assignments:", error);
+        };
+      } catch (error) {
         console.error("Error retrieving storedUsername:", error);
       } finally {
         setLoading(false);
@@ -211,30 +181,21 @@ export default function HomeScreen() {
     setDocList([]);
     try {
       // Get any open assignments for the user
-      const q = query(collection(FIRESTORE_DB, "gig-council"),
-        where('endTime', '==', null),
-        where('owner', '==', userData.username));
-      console.log("retrieving assignments owned by ", userData.username);
       if (isFocused) {
         try {
-          const snapshot = await getDocs(q)
-          snapshot.forEach((doc) => {
-            // doc.data() is never undefined for query doc snapshots
-            if (docList.findIndex(obj => obj.id === doc.id) === -1) {
-              docList.push({
-                "id": doc.id,
-                "owner": doc.data()["owner"],
-                "category": doc.data()["category"],
-                "description": doc.data()["description"],
-                "startTime": doc.data()["startTime"],
-                "endTime": doc.data()["endTime"]
-              })
-              console.log("Fetching ", doc.id,
-                "=>", doc.data()["description"],
-                "=>", doc.data()["category"],
-                doc.data()["startTime"]["seconds"]);
-            };
-          });
+          if (isFocused) {
+            const snapshot = await firestoreService.getAllOpenAssignmentsByOwner('gig-council', userData.username);
+            snapshot.forEach(assignment => {
+                docList.push(assignment)
+                console.log("Fetching ", assignment.id,
+                  ", ", assignment.description,
+                  ", ", assignment.category,
+                  ", ", assignment.startTime["seconds"]);
+            });
+            console.log("Fetched", docList.length, "unfinished assignments");
+            setDocList(docList);
+            setRefresh(!refresh);
+          }; // if isFocused
           console.log("Fetched", docList.length, "unfinished assignments");
           setDocList(docList);
           setRefresh(!refresh);
