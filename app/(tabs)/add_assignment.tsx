@@ -12,8 +12,8 @@ import {
   Platform
 } from 'react-native';
 import { Assignment, Collection } from './index';
-import { useUserContext } from '../../contexts/UserContext';
 import { firestoreService } from '../../services/firestoreService';
+import { useUserContext } from '../../contexts/UserContext';
 
 export default function AddAssignment() {
   const router = useRouter();
@@ -23,8 +23,7 @@ export default function AddAssignment() {
     startTime: null,
     endTime: null,
   });
-  const { userData, setUserData } = useUserContext();
-
+  const { userData, saveUserData, updateUserData, clearUserData, isLoading } = useUserContext();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prevFormData) => ({
@@ -44,18 +43,17 @@ export default function AddAssignment() {
 
     // Add the new assignment
     try {
-      const newAssignment: Assignment = {
-        owner: userData.username,
-        description: formData.description,
-        category: formData.category,
-        startTime: null,
-        endTime: null,
-      };
-      await firestoreService.createAssignment(Collection.assignment, newAssignment);
-      setUserData(prev => ({
-            ...prev,
-            isOnAssignment: true
-      }));
+      if (userData) {
+        const newAssignment: Assignment = {
+          owner: userData.username,
+          description: formData.description,
+          category: formData.category,
+          startTime: null,
+          endTime: null,
+        };
+        await firestoreService.createAssignment(Collection.assignment, newAssignment);
+        updateUserData({ isOnAssignment: true });
+      }
     } catch (e) {
       console.error('Error adding assignment: ', e);
     };
