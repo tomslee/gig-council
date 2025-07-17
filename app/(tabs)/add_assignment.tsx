@@ -1,20 +1,5 @@
-import TimePicker from '@/components/TimePicker';
 import CategoryPicker from '@/components/CategoryPicker';
-import {
-  collection,
-  doc,
-  get,
-  addDoc,
-  Timestamp,
-  query,
-  where,
-  getDocs,
-  QuerySnapshot,
-  updateDoc,
-  DocumentReference,
-  serverTimestamp
-} from 'firebase/firestore';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   View,
@@ -26,23 +11,19 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { FIRESTORE_DB } from './index';
-import { useIsFocused } from "@react-navigation/native";
-import { useUser } from '../../contexts/UserContext';
+import { Assignment, Collection } from './index';
+import { firestoreService } from '../../services/firestoreService';
+import { useUserContext } from '../../contexts/UserContext';
 
 export default function AddAssignment() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     description: "",
     category: "Admin",
-    startTime: Timestamp.fromDate(new Date()),
+    startTime: null,
     endTime: null,
   });
-  const [snapshot, setSnapshot] = useState<QuerySnapshot | undefined>();
-  const [activeDocRef, setActiveDocRef] = useState<DocumentReference>();
-  const isFocused = useIsFocused();
-  const { sharedUserData } = useUser();
-
+  const { userData, saveUserData, updateUserData, clearUserData, isLoading } = useUserContext();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prevFormData) => ({
@@ -55,35 +36,24 @@ export default function AddAssignment() {
     console.log("In addAssignment");
     // Close any open assignments
     try {
-      const q = query(collection(FIRESTORE_DB, "gig-council"),
-        where('endTime', '==', null),
-        where('owner', '==', sharedUserData["username"])
-      );
-      const querySnapshot = await getDocs(q);
-      // ... process documents
-      for (const doc of querySnapshot.docs) {
-        const docRef = doc.ref; // Get a reference to the document
-        await updateDoc(docRef, {
-          endTime: serverTimestamp() // The field and its new value
-        });
-        console.log('Assignment ', doc.id, 'closed.');
-      };
+      await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
     } catch (e) {
-      console.error('Error closing assignment', doc.id, ': ', e);
+      console.error('Error closing open assignments', e);
     };
 
     // Add the new assignment
     try {
-      const activeDocRef = await addDoc(collection(FIRESTORE_DB, 'gig-council'),
-        {
-          owner: sharedUserData["username"],
+      if (userData) {
+        const newAssignment: Assignment = {
+          owner: userData.username,
           description: formData.description,
           category: formData.category,
-          startTime: serverTimestamp(),
+          startTime: null,
           endTime: null,
-        });
-      console.log('Uploaded assignment: ID=', activeDocRef.id, ', category=', formData.category), "owner=", sharedUserData["username"];
-      setActiveDocRef(activeDocRef);
+        };
+        await firestoreService.createAssignment(Collection.assignment, newAssignment);
+        updateUserData({ isOnAssignment: true });
+      }
     } catch (e) {
       console.error('Error adding assignment: ', e);
     };
@@ -93,7 +63,7 @@ export default function AddAssignment() {
       setFormData({
         description: "",
         category: "",
-        startTime: Timestamp.fromDate(new Date()),
+        startTime: null,
         endTime: null,
       });
       router.navigate('/'); // Navigate to the Home Screen
@@ -154,9 +124,12 @@ export default function AddAssignment() {
 
           {/* Start Button */}
           <TouchableOpacity
-            style={styles.saveButton}
-            onPress={addAssignment} >
-            <Text style={styles.saveButtonText}>Start Assignment</Text>
+            style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
+            onPress={addAssignment}
+            disabled={!userData.sessionID}>
+            <Text style={styles.saveButtonText}>
+              {userData.sessionID !== "" ? 'Start Assignment' : 'You must sign in to start an assignment'}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -213,6 +186,15 @@ const styles = StyleSheet.create({
       blurRadius: 2,
     }],
     elevation: 5,
+  },
+  disabledButton: {
+    backgroundColor: '#b2d8d8',
+    boxShadow: [{
+      color: '#b2d8d8',
+      offsetX: 0,
+      offsetY: 3,
+      blurRadius: 2,
+    }],
   },
   saveButtonText: {
     color: '#ffffff',

@@ -8,129 +8,139 @@ import {
     SafeAreaView,
     ScrollView
 } from 'react-native';
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-} from "firebase/firestore";
-import { FIRESTORE_DB, CATEGORIES } from './index';
+import { Collection, CATEGORIES } from './index';
+import { firestoreService } from '../../services/firestoreService';
 import { useIsFocused } from "@react-navigation/native";
-import { useUser } from '../../contexts/UserContext';
+import { useUserContext } from '../../contexts/UserContext';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
-    const [selectedItem, setSelectedItem] = useState(null);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
-    const { sharedUserData } = useUser();
+    const { userData, setUserData } = useUserContext();
     const [docList, setDocList] = useState([{}]);
 
     type DailyPayReport = {
         "date": string;
         "categoryMinutes": { [key: string]: number };
+        "categoryAssignments": { [key: string]: number };
         "totalMinutes": number;
+        "totalAssignments": number;
         "paidMinutes": number;
+        "paidAssignments": number;
     };
-    type DisplayItem = {
-        id: string;
-        description: string;
-        category: string;
-    }
     const today = new Date().toDateString();
 
     const [payReport, setPayReport] = useState<DailyPayReport>({
         "date": today,
         "categoryMinutes": {},
+        "categoryAssignments": {},
         "totalMinutes": 0,
-        "paidMinutes": 0
+        "totalAssignments": 0,
+        "paidMinutes": 0,
+        "paidAssignments": 0,
     });
 
     useEffect(() => {
-        const fetchData = async () => {
+        // fetch the assignments for this user and construct the report
+        const constructReport = async () => {
             setDocList([{}]);
-            const q = query(collection(FIRESTORE_DB, "gig-council"),
-                where('owner', '==', sharedUserData["username"])
-            );
             for (const category of CATEGORIES) {
                 payReport["categoryMinutes"][category["label"]] = 0;
-                console.log("Setting categoryMinutes to zero for", category["label"]);
+                payReport["categoryAssignments"][category["label"]] = 0;
             };
             payReport["totalMinutes"] = 0;
             payReport["paidMinutes"] = 0;
+            payReport["totalAssignments"] = 0;
+            payReport["paidAssignments"] = 0;
             if (isFocused) {
                 try {
-                    const snapshot = await getDocs(q)
-                    snapshot.forEach((doc) => {
-                        if (doc.data()["endTime"] == null) {
-                            return;
-                        }
-                        let category = doc.data()["category"];
-                        // doc.data() is never undefined for query doc snapshots
-                        if (docList.findIndex(obj => obj.id === doc.id) === -1) {
-                            docList.push({
-                                "id": doc.id,
-                                "category": doc.data()["category"],
-                                "description": doc.data()["description"],
-                            })
-                            console.log("Downloading ", doc.id,
-                                "=>", category,
-                                "=>", doc.data()["descriotion"]);
-                        };
-                        let minutes = Math.abs(doc.data()["endTime"].toDate() -
-                            doc.data()["startTime"].toDate()) / (60000.0) || 0;
-                        console.log("Elapsed time:", minutes);
-                        if (minutes > 0 && category != "") {
-                            payReport["categoryMinutes"][category] += minutes;
-                        };
-                        let thisCategory = CATEGORIES.find(item => item["label"] === category) || {};
-                        if ("label" in thisCategory && "payable" in thisCategory) {
-                            console.log("thisCategory = " + thisCategory["label"] + ", " + minutes + " minutes");
-                            if (minutes > 0) {
-                                payReport["totalMinutes"] += minutes;
-                                if (thisCategory["payable"]) {
-                                    payReport["paidMinutes"] += minutes;
-                                }
+                    const assignments = await firestoreService.getAllAssignmentsByOwner(Collection.assignment,
+                        userData.username);
+                    console.log("Fetched ", assignments?.length, "for report");
+                    if (assignments) {
+                        for (const assignment of assignments) {
+                            if (assignment.endTime == null) {
+                                console.log("Unfinished assignment, id=", assignment.id);
+                                continue;
+                            };
+                            const docCategory = assignment.category;
+                            const docDescription = assignment.description;
+                            // doc.data() is never undefined for query doc snapshots
+                            if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
+                                docList.push({
+                                    "id": assignment.id,
+                                    "category": docCategory,
+                                    "description": docDescription
+                                });
+                                console.log("Adding ", assignment.id,
+                                    "=>", docCategory,
+                                    "=>", docDescription,
+                                    "to report"
+                                );
+                            };
+                            const minutes = Math.abs(assignment.endTime.getTime() -
+                                assignment.startTime.getTime()) / (60000.0) || 0;
+                            console.log("Assignment id=", assignment.id, "has duration", minutes);
+                            if (minutes > 0 && docCategory && docCategory !== "") {
+                                payReport["categoryMinutes"][docCategory] += minutes;
+                                payReport["categoryAssignments"][docCategory] += 1;
+                            };
+                            const thisCategory = CATEGORIES.find(item => item["label"] === docCategory) || {};
+                            if ("label" in thisCategory && "payable" in thisCategory) {
+                                console.log("thisCategory = " + thisCategory["label"] + ", " + minutes + " minutes");
+                                if (minutes > 0) {
+                                    payReport["totalMinutes"] += minutes;
+                                    payReport["totalAssignments"] += 1;
+                                    if (thisCategory["payable"]) {
+                                        payReport["paidMinutes"] += minutes;
+                                        payReport["paidAssignments"] += 1;
+                                    }
+                                };
                             };
                         };
-                    });
-                    console.log("A total of " + docList.length + " assignments");
-                    setPayReport(payReport);
-                    setDocList(docList);
-                    setRefresh(!refresh);
+                        console.log("Report includes ", docList.length, " assignments");
+                        console.log("userData is", userData);
+                        setPayReport(payReport);
+                        setDocList(docList);
+                        setRefresh(!refresh);
+                    }; // if (assignment)
                 } catch (err) {
                     console.error(err);
                 } finally {
                     setLoading(false);
-                }
+                };
             };
         };
-        fetchData();
+        constructReport();
     }, [isFocused]);
-
-    /*
-    const renderItem = ({ item }: ListRenderItemInfo<DisplayItem>) => {
-        return (
-            <TouchableOpacity
-                style={[
-                    styles.reportItem,
-                    item.id === selectedItem?.id && styles.selectedListItem,
-                ]}
-                onPress={() => setSelectedItem(item)}
-            >
-                <Text style={styles.reportItemText}>{item["description"]}</Text>
-            </TouchableOpacity>
-        );
-    };
-    */
 
     if (loading) {
         return (
             <View style={styles.reportContainer}>
                 <Text style={styles.text}>Loading data ...</Text>
             </View>
-        )
+        );
     };
+
+    if (!userData.sessionID){
+        return (
+            <SafeAreaView style={styles.safeAreaContainer}>
+                <KeyboardAvoidingView
+                    style={styles.keyboardAvoid}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
+                    <ScrollView style={styles.reportContainer}>
+                    <View style={styles.reportSection}>
+                        <View style={styles.reportItem}>
+                        <Text style={[styles.text, {fontWeight: "bold"}]}>You must sign in to view your report</Text>
+                        </View>
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.safeAreaContainer}>
@@ -148,10 +158,14 @@ export default function ReportScreen() {
                         <View style={styles.reportItem}>
                             <Text style={{ fontWeight: "bold" }}>Total minutes:</Text>
                             <Text >{payReport["totalMinutes"].toFixed()}</Text>
+                            <Text style={{ fontWeight: "bold" }}>Total assignments:</Text>
+                            <Text >{payReport["totalAssignments"].toFixed()}</Text>
                         </View>
                         <View style={styles.reportItem}>
                             <Text style={{ fontWeight: "bold" }}>Paid minutes:</Text>
                             <Text >{payReport["paidMinutes"].toFixed()}</Text>
+                            <Text style={{ fontWeight: "bold" }}>Paid assignments:</Text>
+                            <Text >{payReport["paidAssignments"].toFixed()}</Text>
                         </View>
                     </View>
 
