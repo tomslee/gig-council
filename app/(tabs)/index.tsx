@@ -72,7 +72,7 @@ export default function HomeScreen() {
       try {
         setDocList([]);
         console.log("HomeScreen: userData=", userData);
-        if (userData) {
+        if (userData && userData.username) {
           if (isFocused) {
             const assignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userData.username);
             if (assignments) {
@@ -83,7 +83,7 @@ export default function HomeScreen() {
                   ", ", assignment.category,
                   ", ", assignment.startTime);
               };
-              console.log("Fetched", docList.length, "unfinished assignments  for", userData.username, ".");
+              console.log("Fetched", docList.length, "unfinished assignments for", userData.username, ".");
               setDocList(docList);
               setRefresh(!refresh);
             };
@@ -148,71 +148,60 @@ export default function HomeScreen() {
   // To save a username
   const appSignIn = async (): Promise<void> => {
     try {
-      console.log("In appSignIn");
-      setLoading(true);
-      const trimmedUsername = localUsername.trim();
-      await firebaseSignIn();
-      await firestoreService.closeAllSessionsForOwner(Collection.session, userData.username);
-      const newUserData: UserData = {
-        username: trimmedUsername,
-        defaultUsername: trimmedUsername,
-        sessionID: "",
-        isOnAssignment: false,
-      };
-      await saveUserData(newUserData);
-      const newSession: Session = {
-        owner: newUserData.username,
-        startTime: null,
-        endTime: null
-      };
-      const session = await firestoreService.createSession(Collection.session, newSession);
-      await updateUserData({ username: newUserData.username, sessionID: session.id });
-      console.log("Signing in", newUserData.username, "to session", session.id);
-      //setRefresh(!refresh);
-    } catch (error) {
-      console.error('Error signing in:', error);
-    }
-
-    setDocList([]);
-    try {
-      // Get any open assignments for the user
-      if (isFocused) {
-        try {
-          if (userData) {
-            const assignments = await firestoreService.getAllOpenAssignmentsByOwner(
-              Collection.assignment,
-              userData.username);
-            if (assignments) {
-              for (const assignment of assignments) {
-                docList.push(assignment);
-                console.log("Fetching ", assignment.id,
-                  ", ", assignment.description,
-                  ", ", assignment.category,
-                  ", ", assignment.startTime);
-              };
-            };
-            console.log("Fetched", docList.length, "unfinished assignments");
-            setDocList(docList);
-            setRefresh(!refresh);
-          }; // if isFocused
-          console.log("Fetched", docList.length, "unfinished assignments");
+      if (userData) {
+        console.log("In appSignIn");
+        setLoading(true);
+        setDocList([]);
+        await firebaseSignIn();
+        const trimmedUsername = localUsername.trim();
+        await firestoreService.closeAllSessionsForOwner(Collection.session, trimmedUsername);
+        const newUserData: UserData = {
+          username: trimmedUsername,
+          defaultUsername: trimmedUsername,
+          sessionID: "",
+          isOnAssignment: false,
+        };
+        const newSession: Session = {
+          owner: newUserData.username,
+          startTime: null,
+          endTime: null
+        };
+        const session = await firestoreService.createSession(Collection.session, newSession);
+        const assignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, newUserData.username);
+        if (assignments) {
+          for (const assignment of assignments) {
+            docList.push(assignment)
+            console.log("Fetching ", assignment.id,
+              ", ", assignment.description,
+              ", ", assignment.category,
+              ", ", assignment.startTime);
+          };
+          console.log("Fetched", docList.length, "unfinished assignments for", userData.username, ".");
           setDocList(docList);
-          setRefresh(!refresh);
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      };
+          // Now save the userData with the proper settings, for later 
+          if (docList.length > 0) {
+            await saveUserData({ ...newUserData, sessionID: session.id, isOnAssignment: true });
+          } else {
+            await saveUserData({ ...newUserData, sessionID: session.id, isOnAssignment: false });
+          };
+        };
+        setRefresh(!refresh);
+        setLoading(false);
+        console.log("Signed in", newUserData.username, "to session", session.id);
+      }
     } catch (error) {
       console.error('Error signing in:', error);
-    }
+    };
   };
 
   const closeAssignments = async () => {
     try {
-      await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
-      setDocList([]);
+      if (userData && userData.username) {
+        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
+        await updateUserData({ isOnAssignment: false });
+        setDocList([]);
+        console.log("All assignments closed");
+      };
     } catch (error) {
       console.error("Error closing assignments. ", error);
     };
@@ -228,12 +217,7 @@ export default function HomeScreen() {
         await firestoreService.closeAllSessionsForOwner(Collection.session, userData.username);
         await firebaseSignOut();
         await updateUserData({ username: "", sessionID: "" });
-        /*
-        try {
-            await clearUserData();
-        }
-        */
-        console.log('Signed out of application. username is now', userData.username, 'defaultUsername is', userData.defaultUsername);
+        console.log(userData.username, 'signed out of application.');
       };
     } catch (error) {
       console.error('Error signing out:', error);
@@ -253,14 +237,14 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeAreaContainer}>
-      {console.log("JSX:", userData)}
+      {console.log("JSX: userData=", userData)}
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.formContainer}>
           {/* Welcome banner */}
-          {(userData && userData.username && !userData.sessionID && !userData.isOnAssignment) ? (
+          {(userData && userData.username && userData.sessionID && !userData.isOnAssignment) ? (
             <View style={styles.bannerSection}>
               <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.username}.</Text>
               <Text style={styles.bannerText} >You are now available for work assignments.</Text>
@@ -271,7 +255,7 @@ export default function HomeScreen() {
               <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.username}.</Text>
             </View>
           ) : null}
-          {(userData && !userData.username && !userData.sessionID) ? (
+          {(userData && !userData.sessionID) ? (
             <View style={styles.bannerSection}>
               <Text style={styles.bannerText}>Welcome to the Gig Council Challenge.</Text>
               <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
@@ -279,13 +263,13 @@ export default function HomeScreen() {
           ) : null}
 
           {/* Sign in section */}
-          {(userData && !userData.sessionID && !userData.username) ? (
+          {(userData && !userData.sessionID) ? (
             <View style={styles.section}>
               <TextInput
                 style={styles.textInput}
                 onChangeText={setLocalUsername}
                 value={localUsername}
-                placeholder={(userData.defaultUsername) ? "Type a user name..." : userData.defaultUsername}
+                placeholder={(userData.defaultUsername) ? userData.defaultUsername : "Type a user name..."}
                 defaultValue={userData.defaultUsername}
                 id="id-set-user-name"
               />

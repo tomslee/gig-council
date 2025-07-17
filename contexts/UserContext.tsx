@@ -42,7 +42,7 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
       const storedSessionID = await SecureStore.getItemAsync("_sessionID");
       const storedIsOnAssignment = (SecureStore.getItem("_isOnAssignment") === "true");
       const storedUserData: UserData = {
-        username: storedUsername ? storedUsername : "",
+        username: storedDefaultUsername ? storedDefaultUsername : "",
         defaultUsername: storedDefaultUsername ? storedDefaultUsername : "",
         sessionID: storedSessionID ? storedSessionID : "",
         isOnAssignment: storedIsOnAssignment,
