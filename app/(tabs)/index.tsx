@@ -246,14 +246,14 @@ export default function HomeScreen() {
         <View style={styles.formContainer}>
           {/* Welcome banner */}
           {(userData && userData.username && userData.sessionID) ? (
-            <View style={styles.section}>
+            <View style={styles.formSection}>
               <View style={styles.bannerSection}>
                 <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.username}.</Text>
               </View>
             </View>
           ) : null}
           {(userData && !userData.sessionID) ? (
-            <View style={styles.section}>
+            <View style={styles.formSection}>
               <View style={styles.bannerSection}>
                 <Text style={styles.bannerText}>Welcome to the Gig Council Challenge.</Text>
                 <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
@@ -263,7 +263,7 @@ export default function HomeScreen() {
 
           {/* Sign in section */}
           {(userData && !userData.sessionID) ? (
-            <View style={styles.section}>
+            <View style={styles.formSection}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Sign in:</Text>
                 <InfoIcon
@@ -290,9 +290,11 @@ export default function HomeScreen() {
 
           {/* Open assignments */}
           {(userData && userData.username && userData.sessionID && docList && docList.length > 0) ? (
-            <View style={styles.section}>
+            <View style={styles.formSection}>
               {/* console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString()) */}
-              <Text style={styles.label}>Current assignment...</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>Current assignment...</Text>
+              </View>
               <View style={styles.assignmentContainer}>
                 <Text style={styles.listItemText}>
                   Category: {docList[docList.length - 1]["category"]}
@@ -310,18 +312,20 @@ export default function HomeScreen() {
                   </Text>) : null
                 }
               </View>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={closeAssignments} >
-                <Text style={styles.saveButtonText}>Close this assignment</Text>
-              </TouchableOpacity>
+              <View>
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={closeAssignments} >
+                  <Text style={styles.saveButtonText}>Close this assignment</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : null}
 
           {/* Start an assignment Button */}
           {(userData && userData.sessionID && !userData.isOnAssignment) ? (
-            <View style={styles.section}>
-              <Text style={styles.bannerText} >You are now available for work assignments.</Text>
+            <View style={styles.formSection}>
+              <Text style={styles.bannerText} >You are online and available for work assignments.</Text>
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={goToAddAssignment} >
@@ -336,7 +340,7 @@ export default function HomeScreen() {
 
           {/* Sign out Button */}
           {userData && userData.sessionID ? (
-            <View style={styles.section}>
+            <View style={styles.formSection}>
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={appSignOut} >
@@ -351,7 +355,7 @@ export default function HomeScreen() {
 
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 };
 
@@ -369,11 +373,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: 'space-evenly', // This evenly distributes the form elements
   },
-  section: {
+  formSection: {
+    flex: 1,
     marginVertical: 8,
     paddingVertical: 24,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+    justifyContent: 'center',
   },
   listItem: {
     paddingVertical: 16,
@@ -400,14 +406,12 @@ const styles = StyleSheet.create({
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 8,
   },
   label: {
     fontSize: 18,
     fontWeight: '600',
     color: '#34495e',
     marginHorizontal: 8,
-    marginVertical: 8,
   },
   bannerSection: {
     paddingVertical: 8,
@@ -461,7 +465,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   assignmentContainer: {
-    padding: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     marginHorizontal: 8,
     backgroundColor: '#FFFFFF', // White background
     borderRadius: 8, // Slightly rounded corners

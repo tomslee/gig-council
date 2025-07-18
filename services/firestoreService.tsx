@@ -159,7 +159,8 @@ export const firestoreService = {
       return snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        startTime: doc.data().startTime.toDate(),
+        startTime: ((doc.data().startTime != null) ? doc.data().startTime.toDate() : null),
+        endTime: ((doc.data().endTime != null) ? doc.data().endTime.toDate() : null),
       })) as Session[];
     } catch (error) {
       console.error('Error getting sessions ', error);
