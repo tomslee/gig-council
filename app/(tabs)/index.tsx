@@ -16,6 +16,7 @@ import {
 import { signInAnonymously, signOut } from "firebase/auth";
 import { FIREBASE_AUTH } from '../../lib/firebase';
 import { firestoreService } from '../../services/firestoreService';
+import InfoIcon from '../../components/InfoIcon';
 // End of imports
 
 export const CATEGORIES = [
@@ -244,27 +245,32 @@ export default function HomeScreen() {
       >
         <View style={styles.formContainer}>
           {/* Welcome banner */}
-          {(userData && userData.username && userData.sessionID && !userData.isOnAssignment) ? (
-            <View style={styles.bannerSection}>
-              <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.username}.</Text>
-              <Text style={styles.bannerText} >You are now available for work assignments.</Text>
-            </View>
-          ) : null}
-          {(userData && userData.username && userData.sessionID && userData.isOnAssignment) ? (
-            <View style={styles.bannerSection}>
-              <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.username}.</Text>
+          {(userData && userData.username && userData.sessionID) ? (
+            <View style={styles.section}>
+              <View style={styles.bannerSection}>
+                <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.username}.</Text>
+              </View>
             </View>
           ) : null}
           {(userData && !userData.sessionID) ? (
-            <View style={styles.bannerSection}>
-              <Text style={styles.bannerText}>Welcome to the Gig Council Challenge.</Text>
-              <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
+            <View style={styles.section}>
+              <View style={styles.bannerSection}>
+                <Text style={styles.bannerText}>Welcome to the Gig Council Challenge.</Text>
+                <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
+              </View>
             </View>
           ) : null}
 
           {/* Sign in section */}
           {(userData && !userData.sessionID) ? (
             <View style={styles.section}>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>Sign in:</Text>
+                <InfoIcon
+                  title="Sign In recommendations"
+                  helpText="We suggest your given name, or other alias. We make reasonable attempts to be secure, but no guarantees"
+                />
+              </View>
               <TextInput
                 style={styles.textInput}
                 onChangeText={setLocalUsername}
@@ -313,8 +319,9 @@ export default function HomeScreen() {
           ) : null}
 
           {/* Start an assignment Button */}
-          {userData && userData.sessionID ? (
+          {(userData && userData.sessionID && !userData.isOnAssignment) ? (
             <View style={styles.section}>
+              <Text style={styles.bannerText} >You are now available for work assignments.</Text>
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={goToAddAssignment} >
@@ -360,12 +367,13 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
     justifyContent: 'space-evenly', // This evenly distributes the form elements
   },
   section: {
     marginVertical: 8,
+    paddingVertical: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   listItem: {
     paddingVertical: 16,
@@ -389,16 +397,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
   label: {
     fontSize: 18,
     fontWeight: '600',
     color: '#34495e',
-    marginBottom: 8,
-    marginLeft: 2,
+    marginHorizontal: 8,
+    marginVertical: 8,
   },
   bannerSection: {
-    paddingVertical: 20,
-    marginVertical: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    marginHorizontal: 8,
     elevation: 1,
     backgroundColor: '#ffffff',
     borderRadius: 8, // Slightly rounded corners
@@ -415,9 +429,11 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: '#66B2B2',
     borderRadius: 12,
+    paddingHorizontal: 8,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 16,
+    marginVertical: 8,
+    marginHorizontal: 8,
     boxShadow: [{
       color: '#66B2B2',
       offsetX: 0,
@@ -428,22 +444,25 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: '#ffffff',
+    textAlign: 'center',
     fontSize: 18,
     fontWeight: '600',
   },
   textInput: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e1e8ed',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 16,
+    marginVertical: 12,
     fontSize: 16,
     color: '#3e3e50',
     elevation: 1,
   },
   assignmentContainer: {
     padding: 15,
+    marginHorizontal: 8,
     backgroundColor: '#FFFFFF', // White background
     borderRadius: 8, // Slightly rounded corners
     borderWidth: 1,

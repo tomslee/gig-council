@@ -1,11 +1,11 @@
 // services/firestoreService.js
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  query, 
-  where, 
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  query,
+  where,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -16,51 +16,51 @@ import { Assignment, Session } from '../app/(tabs)/index';
 export const firestoreService = {
 
   // Get all documents owned by one user
-    async getAllAssignmentsByOwner(collectionName: string, owner: string) {
-        try {
-            const q = query(collection(FIRESTORE_DB, collectionName),
-                where('owner', '==', owner));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                startTime: doc.data().startTime.toDate(), 
-                endTime: doc.data().endTime ? doc.data().endTime.toDate() : null,
-            })) as Assignment[];
-        }  catch (error) {
-            console.error('Error getting documents ', error);
-        };
-    },
+  async getAllAssignmentsByOwner(collectionName: string, owner: string) {
+    try {
+      const q = query(collection(FIRESTORE_DB, collectionName),
+        where('owner', '==', owner));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        startTime: doc.data().startTime.toDate(),
+        endTime: doc.data().endTime ? doc.data().endTime.toDate() : null,
+      })) as Assignment[];
+    } catch (error) {
+      console.error('Error getting documents ', error);
+    };
+  },
 
   // Get all open assignments owned by one user
-    async getAllOpenAssignmentsByOwner(collectionName: string, owner: string) {
-        try {
-            const q = query(collection(FIRESTORE_DB, collectionName),
-                where('owner', '==', owner),
-                where('endTime', '==', null));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                startTime: doc.data().startTime.toDate(), 
-            })) as Assignment[];
-        }  catch (error) {
-            console.error('Error getting assignments ', error);
-        };
-    },
+  async getAllOpenAssignmentsByOwner(collectionName: string, owner: string) {
+    try {
+      const q = query(collection(FIRESTORE_DB, collectionName),
+        where('owner', '==', owner),
+        where('endTime', '==', null));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        startTime: doc.data().startTime.toDate(),
+      })) as Assignment[];
+    } catch (error) {
+      console.error('Error getting assignments ', error);
+    };
+  },
 
   // Get a single document by ID
   async getAssignmentById(collectionName: string, docId: string) {
     try {
       const docRef = doc(FIRESTORE_DB, collectionName, docId);
       const docSnap = await getDoc(docRef);
-      
+
       if (docSnap.exists()) {
         return {
           id: docSnap.id,
           ...docSnap.data(),
-          startTime: docSnap.data().startTime.toDate(), 
-          endTime: docSnap.data().endTime ? docSnap.data().endTime.toDate() : null, 
+          startTime: docSnap.data().startTime.toDate(),
+          endTime: docSnap.data().endTime ? docSnap.data().endTime.toDate() : null,
         };
       } else {
         return null;
@@ -74,20 +74,20 @@ export const firestoreService = {
   // Create a new assignment
   async createAssignment(collectionName: string, newAssignment: Assignment) {
     try {
-        const collectionRef = collection(FIRESTORE_DB, collectionName);
-        const startTime = new Date();
-        const docRef = await addDoc(collectionRef, {
-            ...newAssignment,
-            startTime: startTime,
-        });
-        console.log(`Created assignment id=`, docRef.id);
-        return {
-            id: docRef.id,
-            ...newAssignment,
-            startTime: startTime,
-        };
+      const collectionRef = collection(FIRESTORE_DB, collectionName);
+      const startTime = new Date();
+      const docRef = await addDoc(collectionRef, {
+        ...newAssignment,
+        startTime: startTime,
+      });
+      console.log(`Created assignment id=`, docRef.id);
+      return {
+        id: docRef.id,
+        ...newAssignment,
+        startTime: startTime,
+      };
     } catch (error) {
-        console.error(`Error creating assignment:`, error);
+      console.error(`Error creating assignment:`, error);
       throw error;
     }
   },
@@ -95,114 +95,130 @@ export const firestoreService = {
   // Close an assignment
   async closeAssignment(collectionName: string, assignment: Assignment) {
     try {
-        const docRef = doc(collection(FIRESTORE_DB, collectionName),
-            assignment.id);
-        const endTime = new Date();
-        await updateDoc(docRef, {
-            ...assignment,
-            endTime: endTime,
-        });
-        console.log('Assignment ', assignment.id, 'closed');
-      
-        return {
-            ...assignment,
-            endTime: endTime,
-        };
+      const docRef = doc(collection(FIRESTORE_DB, collectionName),
+        assignment.id);
+      const endTime = new Date();
+      await updateDoc(docRef, {
+        ...assignment,
+        endTime: endTime,
+      });
+      console.log('Assignment ', assignment.id, 'closed');
+
+      return {
+        ...assignment,
+        endTime: endTime,
+      };
     } catch (error) {
-        console.error(`Error closing assignment:`, error);
-        throw error;
+      console.error(`Error closing assignment:`, error);
+      throw error;
     }
   },
 
   async closeAllAssignmentsForOwner(collectionName: string, owner: string) {
     try {
-        const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(
-            collectionName, owner);
-        if (openAssignments) {
-            for (const openAssignment of openAssignments) {
-                await firestoreService.closeAssignment(
-                    collectionName, openAssignment);
-            };
+      const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(
+        collectionName, owner);
+      if (openAssignments) {
+        for (const openAssignment of openAssignments) {
+          await firestoreService.closeAssignment(
+            collectionName, openAssignment);
         };
+      };
     } catch (e) {
-        console.error(`Error closing assignment {docRef.id}: `, e);
+      console.error(`Error closing assignment {docRef.id}: `, e);
     };
   },
 
   // Create a new session (log in for work)
   async createSession(collectionName: string, newSession: Session) {
     try {
-        const collectionRef = collection(FIRESTORE_DB, collectionName);
-        const startTime = new Date();
-        const docRef = await addDoc(collectionRef, {
-            ...newSession,
-            startTime: startTime,
-        });
-        console.log(`Created session id=`, docRef.id);
-        return {
-            id: docRef.id,
-            ...newSession,
-            startTime: startTime,
-        };
+      const collectionRef = collection(FIRESTORE_DB, collectionName);
+      const startTime = new Date();
+      const docRef = await addDoc(collectionRef, {
+        ...newSession,
+        startTime: startTime,
+      });
+      console.log(`Created session id=`, docRef.id);
+      return {
+        id: docRef.id,
+        ...newSession,
+        startTime: startTime,
+      };
     } catch (error) {
-        console.error(`Error creating session:`, error);
+      console.error(`Error creating session:`, error);
       throw error;
     }
   },
 
+  // Get all sessions owned by one user
+  async getAllSessionsByOwner(collectionName: string, owner: string) {
+    try {
+      const q = query(collection(FIRESTORE_DB, collectionName),
+        where('owner', '==', owner));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        startTime: doc.data().startTime.toDate(),
+      })) as Session[];
+    } catch (error) {
+      console.error('Error getting sessions ', error);
+    };
+  },
+
   // Get all open sessions owned by one user (there should be only one)
-    async getAllOpenSessionsByOwner(collectionName: string, owner: string) {
-        try {
-            const q = query(collection(FIRESTORE_DB, collectionName),
-                where('owner', '==', owner),
-                where('endTime', '==', null));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                startTime: doc.data().startTime.toDate(), 
-            })) as Session[];
-        }  catch (error) {
-            console.error('Error getting sessions ', error);
-        };
-    },
+  async getAllOpenSessionsByOwner(collectionName: string, owner: string) {
+    try {
+      const q = query(collection(FIRESTORE_DB, collectionName),
+        where('owner', '==', owner),
+        where('endTime', '==', null));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        startTime: doc.data().startTime.toDate(),
+      })) as Session[];
+    } catch (error) {
+      console.error('Error getting sessions ', error);
+    };
+  },
 
   // Close a session
   async closeSession(collectionName: string, session: Session) {
     try {
-        const endTime = new Date();
-        const docRef = doc(collection(FIRESTORE_DB, collectionName),
-            session.id);
-        await updateDoc(docRef, {
-            ...session,
-            endTime: endTime,
-        });
-        console.log('Session ', session.id, 'closed');
-      
-        return {
-            ...session,
-            endTime: endTime,
-        };
+      const endTime = new Date();
+      const docRef = doc(collection(FIRESTORE_DB, collectionName),
+        session.id);
+      await updateDoc(docRef, {
+        ...session,
+        endTime: endTime,
+      });
+      console.log('Session ', session.id, 'closed');
+
+      return {
+        ...session,
+        endTime: endTime,
+      };
     } catch (error) {
-        console.error('Error closing session', session.id, error);
-        throw error;
+      console.error('Error closing session', session.id, error);
+      throw error;
     }
   },
 
   // Close a session (log out of work)
   async closeAllSessionsForOwner(collectionName: string, owner: string) {
     try {
-        const openSessions = await firestoreService.getAllOpenSessionsByOwner(
-            collectionName, owner);
-        if (openSessions) {
-            for (const openSession of openSessions) {
-                console.log("Calling closeSession for session", openSession.id);
-                await firestoreService.closeSession(
-                    collectionName, openSession);
-            };
+      const openSessions = await firestoreService.getAllOpenSessionsByOwner(
+        collectionName, owner);
+      if (openSessions) {
+        for (const openSession of openSessions) {
+          console.log("Calling closeSession for session", openSession.id);
+          await firestoreService.closeSession(
+            collectionName, openSession);
         };
+      };
     } catch (e) {
-        console.error('Error closing sessions', e);
+      console.error('Error closing sessions', e);
     };
   },
 
@@ -214,7 +230,7 @@ export const firestoreService = {
         ...data,
         updatedAt: new Date()
       });
-      
+
       return {
         id: docId,
         ...data,
