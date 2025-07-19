@@ -11,7 +11,7 @@ const CategoryPicker = ({ inputHandler }: Props) => {
     const [selectedValue, setSelectedValue] = useState("Admin");
 
     const onChange = (itemValue: string) => {
-        const selectedItem = CATEGORIES.find(item => item.value === itemValue)
+        const selectedItem = CATEGORIES.find(item => item.id === itemValue)
         if (selectedItem) {
             inputHandler(selectedItem.label)
             setSelectedValue(selectedItem.label);
@@ -28,9 +28,9 @@ const CategoryPicker = ({ inputHandler }: Props) => {
             >
                 {CATEGORIES.map((category) => (
                     <Picker.Item
-                        key={category.value}
+                        key={category.id}
                         label={category.label}
-                        value={category.value}
+                        value={category.id}
                     />
                 ))}
             </Picker>

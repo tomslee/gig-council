@@ -17,120 +17,155 @@ export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
-    const { userData, setUserData } = useUserContext();
-    const [docList, setDocList] = useState([{}]);
+    const { userData } = useUserContext();
+    const [docList, setDocList] = useState<any>([]);
+
+    class SessionInfo {
+        minutes: number;
+        sessions: number;
+        constructor(data: { minutes: number; sessions: number }) {
+            this.minutes = data.minutes;
+            this.sessions = data.sessions;
+        }
+    };
+
+    type CategoryInfo = {
+        [key: string]: {
+            minutes: number;
+            assignments: number;
+        };
+    };
+
+    const createEmptyCategoryInfo = (): CategoryInfo => {
+        return CATEGORIES.reduce((acc, category) => {
+            acc[category.label] = { minutes: 0, assignments: 0 };
+            return acc;
+        }, {} as CategoryInfo);
+    };
 
     type DailyPayReport = {
         "date": string;
-        "totalSessionMinutes": number;
         "totalSessions": number;
         "totalAssignmentMinutes": number;
         "totalAssignments": number;
+        "sessionInfo": SessionInfo;
         "paidMinutes": number;
         "paidAssignments": number;
-        "categoryMinutes": { [key: string]: number };
+        "categoryInfo": CategoryInfo;
         "categoryAssignments": { [key: string]: number };
     };
-    const today = new Date().toDateString();
 
+    // Initialize with proper default values
     const [payReport, setPayReport] = useState<DailyPayReport>({
-        "date": today,
-        "totalSessionMinutes": 0,
-        "totalSessions": 0,
-        "totalAssignmentMinutes": 0,
-        "totalAssignments": 0,
-        "paidMinutes": 0,
-        "paidAssignments": 0,
-        "categoryMinutes": {},
-        "categoryAssignments": {},
+        date: new Date().toDateString(),
+        totalSessions: 0,
+        totalAssignmentMinutes: 0,
+        totalAssignments: 0,
+        sessionInfo: { minutes: 0, sessions: 0 },
+        paidMinutes: 0,
+        paidAssignments: 0,
+        categoryInfo: createEmptyCategoryInfo(),
+        categoryAssignments: {},
     });
 
     useEffect(() => {
         // fetch the assignments for this user and construct the report
         const constructReport = async () => {
-            setDocList([{}]);
-            payReport["totalSessionMinutes"] = 0;
-            payReport["totalSessions"] = 0;
-            payReport["totalAssignmentMinutes"] = 0;
-            payReport["totalAssignments"] = 0;
-            payReport["paidMinutes"] = 0;
-            payReport["paidAssignments"] = 0;
-            for (const category of CATEGORIES) {
-                payReport["categoryMinutes"][category["label"]] = 0;
-                payReport["categoryAssignments"][category["label"]] = 0;
-            };
-            if (isFocused) {
-                try {
-                    const sessions = await firestoreService.getAllSessionsByOwner(
-                        Collection.session,
-                        userData.username);
-                    console.log("Fetched ", sessions?.length, "sessions for report");
-                    if (sessions) {
-                        for (const session of sessions) {
-                            if (session.endTime == null) {
-                                const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60000.0) || 0;
-                                payReport["totalSessionMinutes"] += sessionMinutes;
-                                payReport["totalSessions"] += 1;
-                            } else {
-                                const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60000.0) || 0;
-                                payReport["totalSessionMinutes"] += sessionMinutes;
-                                payReport["totalSessions"] += 1;
-                            };
-                        };
-                    };
-                    const assignments = await firestoreService.getAllAssignmentsByOwner(
-                        Collection.assignment,
-                        userData.username);
-                    console.log("Fetched ", assignments?.length, "assignments for report");
-                    if (assignments) {
-                        for (const assignment of assignments) {
-                            if (assignment.startTime == null || assignment.endTime == null) {
-                                console.log("Unfinished assignment, id=", assignment.id);
-                                continue;
-                            };
-                            const docCategory = assignment.category;
-                            const docDescription = assignment.description;
-                            // doc.data() is never undefined for query doc snapshots
-                            if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
-                                docList.push({
-                                    "id": assignment.id,
-                                    "category": docCategory,
-                                    "description": docDescription
-                                });
-                                console.log("Adding ", assignment.id,
-                                    "=>", docCategory,
-                                    "=>", docDescription,
-                                    "to report"
-                                );
-                            };
-                            const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
-                            if (assignmentMinutes > 0 && docCategory && docCategory !== "") {
-                                payReport["categoryMinutes"][docCategory] += assignmentMinutes;
-                                payReport["categoryAssignments"][docCategory] += 1;
-                            };
-                            const thisCategory = CATEGORIES.find(item => item["label"] === docCategory) || {};
-                            if ("label" in thisCategory && "payable" in thisCategory) {
-                                console.log("thisCategory = " + thisCategory["label"] + ", " + assignmentMinutes + " minutes");
-                                if (assignmentMinutes > 0) {
-                                    payReport["totalAssignmentMinutes"] += assignmentMinutes;
-                                    payReport["totalAssignments"] += 1;
-                                    if (thisCategory["payable"]) {
-                                        payReport["paidMinutes"] += assignmentMinutes;
-                                        payReport["paidAssignments"] += 1;
-                                    }
+            try {
+                setDocList([{}]);
+                // Create new report object instead of mutating state directly
+                let newReport: DailyPayReport = {
+                    date: new Date().toDateString(),
+                    totalSessions: 0,
+                    totalAssignmentMinutes: 0,
+                    totalAssignments: 0,
+                    sessionInfo: { minutes: 0, sessions: 0 },
+                    paidMinutes: 0,
+                    paidAssignments: 0,
+                    categoryInfo: createEmptyCategoryInfo(),
+                    categoryAssignments: {},
+                };
+                for (const category of CATEGORIES) {
+                    newReport.categoryInfo[category.label].minutes = 0;
+                    newReport.categoryInfo[category.label].assignments = 0;
+                };
+                if (isFocused && userData) {
+                    try {
+                        const sessions = await firestoreService.getAllSessionsByOwner(
+                            Collection.session,
+                            userData.username);
+                        if (sessions) {
+                            for (const session of sessions) {
+                                if (session.startTime) {
+                                    if (session.endTime == null) {
+                                        const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60000.0) || 0;
+                                        newReport.sessionInfo["minutes"] += sessionMinutes;
+                                        newReport.sessionInfo["sessions"] += 1;
+                                    } else {
+                                        const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60000.0) || 0;
+                                        newReport.sessionInfo["minutes"] += sessionMinutes;
+                                        newReport.sessionInfo["sessions"] += 1;
+                                    };
                                 };
                             };
                         };
-                        console.log("Report includes ", docList.length, " assignments");
-                        setPayReport(payReport);
-                        setDocList(docList);
-                        setRefresh(!refresh);
-                    }; // if (assignments)
-                } catch (err) {
-                    console.error(err);
-                } finally {
-                    setLoading(false);
+                        const assignments = await firestoreService.getAllAssignmentsByOwner(
+                            Collection.assignment,
+                            userData.username);
+                        if (assignments) {
+                            for (const assignment of assignments) {
+                                if (assignment.startTime == null || assignment.endTime == null) {
+                                    continue;
+                                };
+                                const docCategory = assignment.category;
+                                const docDescription = assignment.description;
+                                // doc.data() is never undefined for query doc snapshots
+                                if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
+                                    docList.push({
+                                        id: assignment.id,
+                                        category: docCategory,
+                                        description: docDescription
+                                    });
+                                    console.log("Adding ", assignment.id,
+                                        "=>", docCategory,
+                                        "=>", docDescription,
+                                        "to report"
+                                    );
+                                };
+                                const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
+                                if (assignmentMinutes > 0 && docCategory && docCategory !== "") {
+                                    newReport.categoryInfo[docCategory].minutes += assignmentMinutes;
+                                    newReport.categoryInfo[docCategory].assignments += 1;
+                                    newReport.categoryAssignments[docCategory] += 1;
+                                };
+                                const thisCategory = CATEGORIES.find(item => item["label"] === docCategory) || {};
+                                if ("label" in thisCategory && "payable" in thisCategory) {
+                                    console.log("thisCategory = " + thisCategory["label"] + ", " + assignmentMinutes + " minutes");
+                                    if (assignmentMinutes > 0) {
+                                        newReport.totalAssignmentMinutes += assignmentMinutes;
+                                        newReport.totalAssignments += 1;
+                                        if (thisCategory["payable"]) {
+                                            newReport["paidMinutes"] += assignmentMinutes;
+                                            newReport["paidAssignments"] += 1;
+                                        }
+                                    };
+                                };
+                            };
+                            console.log("Report includes ", docList.length, " assignments");
+                            setPayReport(newReport);
+                            setDocList(docList);
+                            setRefresh(!refresh);
+                        }; // if (assignments)
+                    } catch (err) {
+                        console.error(err);
+                    } finally {
+                        setLoading(false);
+                    };
                 };
+            } catch (e) {
+                console.log("Error in constructReport", e);
+            } finally {
+                setLoading(false);
             };
         };
         constructReport();
@@ -176,29 +211,30 @@ export default function ReportScreen() {
                     {/* Overview */}
                     <View style={styles.reportSection}>
                         <Text style={styles.label}>Overview</Text>
-                        <View style={styles.reportItem}>
+                        <View style={[styles.reportItem, { flexDirection: 'column' }]}>
                             <Text style={{ fontWeight: "bold" }}>Total minutes online:</Text>
-                            <Text >{payReport["totalSessionMinutes"].toFixed()}</Text>
+                            <Text >{payReport.sessionInfo.minutes.toFixed()}</Text>
                             <Text style={{ fontWeight: "bold" }}>Total minutes on assignments:</Text>
-                            <Text >{payReport["totalAssignmentMinutes"].toFixed()}</Text>
+                            <Text >{payReport.totalAssignmentMinutes.toFixed()}</Text>
                             <Text style={{ fontWeight: "bold" }}>Total assignments:</Text>
-                            <Text >{payReport["totalAssignments"].toFixed()}</Text>
+                            <Text >{payReport.totalAssignments.toFixed()}</Text>
                         </View>
                         <View style={styles.reportItem}>
                             <Text style={{ fontWeight: "bold" }}>Paid minutes:</Text>
-                            <Text >{payReport["paidMinutes"].toFixed()}</Text>
+                            <Text >{payReport.paidMinutes.toFixed()}</Text>
                             <Text style={{ fontWeight: "bold" }}>Paid assignments:</Text>
-                            <Text >{payReport["paidAssignments"].toFixed()}</Text>
+                            <Text >{payReport.paidAssignments.toFixed()}</Text>
                         </View>
                     </View>
 
                     {/* Categories */}
                     <View style={styles.reportSection}>
                         <Text style={styles.label}>Time spent on each category (minutes)</Text>
-                        {Object.entries(payReport["categoryMinutes"]).map(([key, value]) => (
+                        {/* console.log(payReport.categoryInfo) */}
+                        {Object.entries(payReport.categoryInfo).map(([key, value]) => (
                             <View key={key} style={styles.reportItem}>
                                 <Text style={{ fontWeight: "bold" }}>{key}: </Text>
-                                <Text >{value.toFixed()}</Text>
+                                <Text >{value.minutes.toFixed()}</Text>
                             </View>
                         ))}
                     </View>
