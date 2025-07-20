@@ -6,12 +6,17 @@ import {
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
-    ScrollView
+    FlatList,
+    ScrollView,
+    SectionList,
 } from 'react-native';
-import { Collection, CATEGORIES } from './index';
+import { Assignment, Collection, CATEGORIES } from './index';
 import { firestoreService } from '../../services/firestoreService';
 import { useIsFocused } from "@react-navigation/native";
 import { useUserContext } from '../../contexts/UserContext';
+import SectionHeader from '../../components/SectionHeader';
+import AssignmentItem from '../../components/AssignmentItem';
+import ReportCategoryItem from '../../components/ReportCategoryItem';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
@@ -43,6 +48,34 @@ export default function ReportScreen() {
         }, {} as CategoryInfo);
     };
 
+    // Define the Section interface that SectionList expects
+    interface AssignmentSection {
+        title: string; // This is the category name ("Phone call", "Meeting", etc.)
+        data: Assignment[]; // Array of assignments in this category
+    }
+
+    // Helper function to group assignments by category
+    const groupAssignmentsByCategory = (
+        assignments: Assignment[]
+    ): AssignmentSection[] => {
+        const grouped = assignments.reduce((acc, assignment) => {
+            const { category } = assignment;
+
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push(assignment);
+
+            return acc;
+        }, {} as Record<string, Assignment[]>);
+
+        return Object.entries(grouped).map(([title, data]) => ({
+            title,
+            data
+        }));
+    };
+
+
     type DailyPayReport = {
         "date": string;
         "totalSessions": number;
@@ -52,7 +85,7 @@ export default function ReportScreen() {
         "paidMinutes": number;
         "paidAssignments": number;
         "categoryInfo": CategoryInfo;
-        "categoryAssignments": { [key: string]: number };
+        "assignmentSections": {};
     };
 
     // Initialize with proper default values
@@ -65,31 +98,31 @@ export default function ReportScreen() {
         paidMinutes: 0,
         paidAssignments: 0,
         categoryInfo: createEmptyCategoryInfo(),
-        categoryAssignments: {},
+        assignmentSections: {},
     });
 
     useEffect(() => {
         // fetch the assignments for this user and construct the report
         const constructReport = async () => {
             try {
-                setDocList([{}]);
-                // Create new report object instead of mutating state directly
-                let newReport: DailyPayReport = {
-                    date: new Date().toDateString(),
-                    totalSessions: 0,
-                    totalAssignmentMinutes: 0,
-                    totalAssignments: 0,
-                    sessionInfo: { minutes: 0, sessions: 0 },
-                    paidMinutes: 0,
-                    paidAssignments: 0,
-                    categoryInfo: createEmptyCategoryInfo(),
-                    categoryAssignments: {},
-                };
-                for (const category of CATEGORIES) {
-                    newReport.categoryInfo[category.label].minutes = 0;
-                    newReport.categoryInfo[category.label].assignments = 0;
-                };
                 if (isFocused && userData) {
+                    setDocList([{}]);
+                    // Create new report object instead of mutating state directly
+                    let newReport: DailyPayReport = {
+                        date: new Date().toDateString(),
+                        totalSessions: 0,
+                        totalAssignmentMinutes: 0,
+                        totalAssignments: 0,
+                        sessionInfo: { minutes: 0, sessions: 0 },
+                        paidMinutes: 0,
+                        paidAssignments: 0,
+                        categoryInfo: createEmptyCategoryInfo(),
+                        assignmentSections: {},
+                    };
+                    for (const category of CATEGORIES) {
+                        newReport.categoryInfo[category.label].minutes = 0;
+                        newReport.categoryInfo[category.label].assignments = 0;
+                    };
                     try {
                         const sessions = await firestoreService.getAllSessionsByOwner(
                             Collection.session,
@@ -114,31 +147,27 @@ export default function ReportScreen() {
                             userData.username);
                         if (assignments) {
                             for (const assignment of assignments) {
-                                if (assignment.startTime == null || assignment.endTime == null) {
+                                if (assignment.category == '' || assignment.startTime == null || assignment.endTime == null) {
                                     continue;
                                 };
-                                const docCategory = assignment.category;
+                                console.log("Assignment:", assignment);
+                                const assignmentCategory = assignment.category;
                                 const docDescription = assignment.description;
                                 // doc.data() is never undefined for query doc snapshots
                                 if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
                                     docList.push({
                                         id: assignment.id,
-                                        category: docCategory,
+                                        category: assignmentCategory,
                                         description: docDescription
                                     });
-                                    console.log("Adding ", assignment.id,
-                                        "=>", docCategory,
-                                        "=>", docDescription,
-                                        "to report"
-                                    );
                                 };
                                 const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
-                                if (assignmentMinutes > 0 && docCategory && docCategory !== "") {
-                                    newReport.categoryInfo[docCategory].minutes += assignmentMinutes;
-                                    newReport.categoryInfo[docCategory].assignments += 1;
-                                    newReport.categoryAssignments[docCategory] += 1;
+                                console.log("nRcA:", newReport.assignmentSections);
+                                if (assignmentMinutes > 0 && assignmentCategory && assignmentCategory !== "") {
+                                    newReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
+                                    newReport.categoryInfo[assignmentCategory].assignments += 1;
                                 };
-                                const thisCategory = CATEGORIES.find(item => item["label"] === docCategory) || {};
+                                const thisCategory = CATEGORIES.find(item => item["label"] === assignmentCategory) || {};
                                 if ("label" in thisCategory && "payable" in thisCategory) {
                                     console.log("thisCategory = " + thisCategory["label"] + ", " + assignmentMinutes + " minutes");
                                     if (assignmentMinutes > 0) {
@@ -152,6 +181,8 @@ export default function ReportScreen() {
                                 };
                             };
                             console.log("Report includes ", docList.length, " assignments");
+                            // Now group the assignments by category and add them in to the structure for presentation
+                            newReport.assignmentSections = groupAssignmentsByCategory(assignments);
                             setPayReport(newReport);
                             setDocList(docList);
                             setRefresh(!refresh);
@@ -171,6 +202,15 @@ export default function ReportScreen() {
         constructReport();
     }, [isFocused]);
 
+    const Item = ({ id, category, description, startTime, endTime }: Assignment) => (
+        <View style={styles.reportItem}>
+            <Text style={styles.label}>{id}</Text>
+            <Text style={styles.label}>{category}</Text>
+            <Text style={styles.label}>{description}</Text>
+            <Text style={styles.label}>{startTime?.toLocaleDateString()}</Text>
+            <Text style={styles.label}>{endTime?.toLocaleDateString()}</Text>
+        </View>
+    );
     if (loading) {
         return (
             <View style={styles.reportContainer}>
@@ -228,27 +268,29 @@ export default function ReportScreen() {
                     </View>
 
                     {/* Categories */}
+                    {/*
                     <View style={styles.reportSection}>
                         <Text style={styles.label}>Time spent on each category (minutes)</Text>
-                        {/* console.log(payReport.categoryInfo) */}
-                        {Object.entries(payReport.categoryInfo).map(([key, value]) => (
-                            <View key={key} style={styles.reportItem}>
-                                <Text style={{ fontWeight: "bold" }}>{key}: </Text>
-                                <Text >{value.minutes.toFixed()}</Text>
-                            </View>
-                        ))}
+                    {Object.entries(payReport.categoryInfo).map(([key, value]) => (
+                        <View key={key} style={styles.reportItem}>
+                            <Text style={{ fontWeight: "bold" }}>{key}: </Text>
+                            <Text >{value.minutes.toFixed()} mins.</Text>
+                            <Text >{value.assignments.toFixed()} assignments.</Text>
+                        </View>
+                    ))}
+                </View>
+                    */}
+                    <View style={styles.reportSection}>
+                        <Text style={styles.label}>Retrieved {docList.length} assignments</Text>
+                        <SectionList
+                            sections={payReport.assignmentSections}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => <ReportCategoryItem assignment={item} />}
+                            renderSectionHeader={({ section: { title } }) => (
+                                <SectionHeader title={title} />
+                            )}
+                        />
                     </View>
-                    {/*
-            <View style={styles.reportSection}>
-                <Text style={styles.label}>Retrieved {docList.length} assignments</Text>
-                <FlatList
-                    data={docList}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item.id}
-                    extraData={refresh}
-                />
-            </View>
-            */}
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView >
@@ -309,5 +351,17 @@ const styles = StyleSheet.create({
         color: '#34495e',
         marginBottom: 8,
         marginLeft: 2,
+    },
+    item: {
+        backgroundColor: '#f9c2ff',
+        padding: 20,
+        marginVertical: 8,
+    },
+    header: {
+        fontSize: 32,
+        backgroundColor: '#fff',
+    },
+    title: {
+        fontSize: 24,
     },
 });
