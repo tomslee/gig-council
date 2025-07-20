@@ -6,136 +6,211 @@ import {
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
-    ScrollView
+    FlatList,
+    ScrollView,
+    SectionList,
 } from 'react-native';
-import { Collection, CATEGORIES } from './index';
+import { Assignment, Collection, CATEGORIES } from './index';
 import { firestoreService } from '../../services/firestoreService';
 import { useIsFocused } from "@react-navigation/native";
 import { useUserContext } from '../../contexts/UserContext';
+import SectionHeader from '../../components/SectionHeader';
+import AssignmentItem from '../../components/AssignmentItem';
+import ReportCategoryItem from '../../components/ReportCategoryItem';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
-    const { userData, setUserData } = useUserContext();
-    const [docList, setDocList] = useState([{}]);
+    const { userData } = useUserContext();
+    const [docList, setDocList] = useState<any>([]);
+
+    class SessionInfo {
+        minutes: number;
+        sessions: number;
+        constructor(data: { minutes: number; sessions: number }) {
+            this.minutes = data.minutes;
+            this.sessions = data.sessions;
+        }
+    };
+
+    type CategoryInfo = {
+        [key: string]: {
+            minutes: number;
+            assignments: number;
+        };
+    };
+
+    const createEmptyCategoryInfo = (): CategoryInfo => {
+        return CATEGORIES.reduce((acc, category) => {
+            acc[category.label] = { minutes: 0, assignments: 0 };
+            return acc;
+        }, {} as CategoryInfo);
+    };
+
+    // Define the Section interface that SectionList expects
+    interface AssignmentSection {
+        title: string; // This is the category name ("Phone call", "Meeting", etc.)
+        data: Assignment[]; // Array of assignments in this category
+    }
+
+    // Helper function to group assignments by category
+    const groupAssignmentsByCategory = (
+        assignments: Assignment[]
+    ): AssignmentSection[] => {
+        const grouped = assignments.reduce((acc, assignment) => {
+            const { category } = assignment;
+
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push(assignment);
+
+            return acc;
+        }, {} as Record<string, Assignment[]>);
+
+        return Object.entries(grouped).map(([title, data]) => ({
+            title,
+            data
+        }));
+    };
+
 
     type DailyPayReport = {
         "date": string;
-        "totalSessionMinutes": number;
         "totalSessions": number;
         "totalAssignmentMinutes": number;
         "totalAssignments": number;
+        "sessionInfo": SessionInfo;
         "paidMinutes": number;
         "paidAssignments": number;
-        "categoryMinutes": { [key: string]: number };
-        "categoryAssignments": { [key: string]: number };
+        "categoryInfo": CategoryInfo;
+        "assignmentSections": {};
     };
-    const today = new Date().toDateString();
 
+    // Initialize with proper default values
     const [payReport, setPayReport] = useState<DailyPayReport>({
-        "date": today,
-        "totalSessionMinutes": 0,
-        "totalSessions": 0,
-        "totalAssignmentMinutes": 0,
-        "totalAssignments": 0,
-        "paidMinutes": 0,
-        "paidAssignments": 0,
-        "categoryMinutes": {},
-        "categoryAssignments": {},
+        date: new Date().toDateString(),
+        totalSessions: 0,
+        totalAssignmentMinutes: 0,
+        totalAssignments: 0,
+        sessionInfo: { minutes: 0, sessions: 0 },
+        paidMinutes: 0,
+        paidAssignments: 0,
+        categoryInfo: createEmptyCategoryInfo(),
+        assignmentSections: {},
     });
 
     useEffect(() => {
         // fetch the assignments for this user and construct the report
         const constructReport = async () => {
-            setDocList([{}]);
-            payReport["totalSessionMinutes"] = 0;
-            payReport["totalSessions"] = 0;
-            payReport["totalAssignmentMinutes"] = 0;
-            payReport["totalAssignments"] = 0;
-            payReport["paidMinutes"] = 0;
-            payReport["paidAssignments"] = 0;
-            for (const category of CATEGORIES) {
-                payReport["categoryMinutes"][category["label"]] = 0;
-                payReport["categoryAssignments"][category["label"]] = 0;
-            };
-            if (isFocused) {
-                try {
-                    const sessions = await firestoreService.getAllSessionsByOwner(
-                        Collection.session,
-                        userData.username);
-                    console.log("Fetched ", sessions?.length, "sessions for report");
-                    if (sessions) {
-                        for (const session of sessions) {
-                            if (session.endTime == null) {
-                                const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60000.0) || 0;
-                                payReport["totalSessionMinutes"] += sessionMinutes;
-                                payReport["totalSessions"] += 1;
-                            } else {
-                                const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60000.0) || 0;
-                                payReport["totalSessionMinutes"] += sessionMinutes;
-                                payReport["totalSessions"] += 1;
-                            };
-                        };
+            try {
+                if (isFocused && userData) {
+                    setDocList([{}]);
+                    // Create new report object instead of mutating state directly
+                    let newReport: DailyPayReport = {
+                        date: new Date().toDateString(),
+                        totalSessions: 0,
+                        totalAssignmentMinutes: 0,
+                        totalAssignments: 0,
+                        sessionInfo: { minutes: 0, sessions: 0 },
+                        paidMinutes: 0,
+                        paidAssignments: 0,
+                        categoryInfo: createEmptyCategoryInfo(),
+                        assignmentSections: {},
                     };
-                    const assignments = await firestoreService.getAllAssignmentsByOwner(
-                        Collection.assignment,
-                        userData.username);
-                    console.log("Fetched ", assignments?.length, "assignments for report");
-                    if (assignments) {
-                        for (const assignment of assignments) {
-                            if (assignment.startTime == null || assignment.endTime == null) {
-                                console.log("Unfinished assignment, id=", assignment.id);
-                                continue;
-                            };
-                            const docCategory = assignment.category;
-                            const docDescription = assignment.description;
-                            // doc.data() is never undefined for query doc snapshots
-                            if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
-                                docList.push({
-                                    "id": assignment.id,
-                                    "category": docCategory,
-                                    "description": docDescription
-                                });
-                                console.log("Adding ", assignment.id,
-                                    "=>", docCategory,
-                                    "=>", docDescription,
-                                    "to report"
-                                );
-                            };
-                            const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
-                            if (assignmentMinutes > 0 && docCategory && docCategory !== "") {
-                                payReport["categoryMinutes"][docCategory] += assignmentMinutes;
-                                payReport["categoryAssignments"][docCategory] += 1;
-                            };
-                            const thisCategory = CATEGORIES.find(item => item["label"] === docCategory) || {};
-                            if ("label" in thisCategory && "payable" in thisCategory) {
-                                console.log("thisCategory = " + thisCategory["label"] + ", " + assignmentMinutes + " minutes");
-                                if (assignmentMinutes > 0) {
-                                    payReport["totalAssignmentMinutes"] += assignmentMinutes;
-                                    payReport["totalAssignments"] += 1;
-                                    if (thisCategory["payable"]) {
-                                        payReport["paidMinutes"] += assignmentMinutes;
-                                        payReport["paidAssignments"] += 1;
-                                    }
+                    for (const category of CATEGORIES) {
+                        newReport.categoryInfo[category.label].minutes = 0;
+                        newReport.categoryInfo[category.label].assignments = 0;
+                    };
+                    try {
+                        const sessions = await firestoreService.getAllSessionsByOwner(
+                            Collection.session,
+                            userData.username);
+                        if (sessions) {
+                            for (const session of sessions) {
+                                if (session.startTime) {
+                                    if (session.endTime == null) {
+                                        const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60000.0) || 0;
+                                        newReport.sessionInfo["minutes"] += sessionMinutes;
+                                        newReport.sessionInfo["sessions"] += 1;
+                                    } else {
+                                        const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60000.0) || 0;
+                                        newReport.sessionInfo["minutes"] += sessionMinutes;
+                                        newReport.sessionInfo["sessions"] += 1;
+                                    };
                                 };
                             };
                         };
-                        console.log("Report includes ", docList.length, " assignments");
-                        setPayReport(payReport);
-                        setDocList(docList);
-                        setRefresh(!refresh);
-                    }; // if (assignments)
-                } catch (err) {
-                    console.error(err);
-                } finally {
-                    setLoading(false);
+                        const assignments = await firestoreService.getAllAssignmentsByOwner(
+                            Collection.assignment,
+                            userData.username);
+                        if (assignments) {
+                            for (const assignment of assignments) {
+                                if (assignment.category == '' || assignment.startTime == null || assignment.endTime == null) {
+                                    continue;
+                                };
+                                console.log("Assignment:", assignment);
+                                const assignmentCategory = assignment.category;
+                                const docDescription = assignment.description;
+                                // doc.data() is never undefined for query doc snapshots
+                                if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
+                                    docList.push({
+                                        id: assignment.id,
+                                        category: assignmentCategory,
+                                        description: docDescription
+                                    });
+                                };
+                                const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
+                                console.log("nRcA:", newReport.assignmentSections);
+                                if (assignmentMinutes > 0 && assignmentCategory && assignmentCategory !== "") {
+                                    newReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
+                                    newReport.categoryInfo[assignmentCategory].assignments += 1;
+                                };
+                                const thisCategory = CATEGORIES.find(item => item["label"] === assignmentCategory) || {};
+                                if ("label" in thisCategory && "payable" in thisCategory) {
+                                    console.log("thisCategory = " + thisCategory["label"] + ", " + assignmentMinutes + " minutes");
+                                    if (assignmentMinutes > 0) {
+                                        newReport.totalAssignmentMinutes += assignmentMinutes;
+                                        newReport.totalAssignments += 1;
+                                        if (thisCategory["payable"]) {
+                                            newReport["paidMinutes"] += assignmentMinutes;
+                                            newReport["paidAssignments"] += 1;
+                                        }
+                                    };
+                                };
+                            };
+                            console.log("Report includes ", docList.length, " assignments");
+                            // Now group the assignments by category and add them in to the structure for presentation
+                            newReport.assignmentSections = groupAssignmentsByCategory(assignments);
+                            setPayReport(newReport);
+                            setDocList(docList);
+                            setRefresh(!refresh);
+                        }; // if (assignments)
+                    } catch (err) {
+                        console.error(err);
+                    } finally {
+                        setLoading(false);
+                    };
                 };
+            } catch (e) {
+                console.log("Error in constructReport", e);
+            } finally {
+                setLoading(false);
             };
         };
         constructReport();
     }, [isFocused]);
 
+    const Item = ({ id, category, description, startTime, endTime }: Assignment) => (
+        <View style={styles.reportItem}>
+            <Text style={styles.label}>{id}</Text>
+            <Text style={styles.label}>{category}</Text>
+            <Text style={styles.label}>{description}</Text>
+            <Text style={styles.label}>{startTime?.toLocaleDateString()}</Text>
+            <Text style={styles.label}>{endTime?.toLocaleDateString()}</Text>
+        </View>
+    );
     if (loading) {
         return (
             <View style={styles.reportContainer}>
@@ -176,43 +251,46 @@ export default function ReportScreen() {
                     {/* Overview */}
                     <View style={styles.reportSection}>
                         <Text style={styles.label}>Overview</Text>
-                        <View style={styles.reportItem}>
+                        <View style={[styles.reportItem, { flexDirection: 'column' }]}>
                             <Text style={{ fontWeight: "bold" }}>Total minutes online:</Text>
-                            <Text >{payReport["totalSessionMinutes"].toFixed()}</Text>
+                            <Text >{payReport.sessionInfo.minutes.toFixed()}</Text>
                             <Text style={{ fontWeight: "bold" }}>Total minutes on assignments:</Text>
-                            <Text >{payReport["totalAssignmentMinutes"].toFixed()}</Text>
+                            <Text >{payReport.totalAssignmentMinutes.toFixed()}</Text>
                             <Text style={{ fontWeight: "bold" }}>Total assignments:</Text>
-                            <Text >{payReport["totalAssignments"].toFixed()}</Text>
+                            <Text >{payReport.totalAssignments.toFixed()}</Text>
                         </View>
                         <View style={styles.reportItem}>
                             <Text style={{ fontWeight: "bold" }}>Paid minutes:</Text>
-                            <Text >{payReport["paidMinutes"].toFixed()}</Text>
+                            <Text >{payReport.paidMinutes.toFixed()}</Text>
                             <Text style={{ fontWeight: "bold" }}>Paid assignments:</Text>
-                            <Text >{payReport["paidAssignments"].toFixed()}</Text>
+                            <Text >{payReport.paidAssignments.toFixed()}</Text>
                         </View>
                     </View>
 
                     {/* Categories */}
+                    {/*
                     <View style={styles.reportSection}>
                         <Text style={styles.label}>Time spent on each category (minutes)</Text>
-                        {Object.entries(payReport["categoryMinutes"]).map(([key, value]) => (
-                            <View key={key} style={styles.reportItem}>
-                                <Text style={{ fontWeight: "bold" }}>{key}: </Text>
-                                <Text >{value.toFixed()}</Text>
-                            </View>
-                        ))}
+                    {Object.entries(payReport.categoryInfo).map(([key, value]) => (
+                        <View key={key} style={styles.reportItem}>
+                            <Text style={{ fontWeight: "bold" }}>{key}: </Text>
+                            <Text >{value.minutes.toFixed()} mins.</Text>
+                            <Text >{value.assignments.toFixed()} assignments.</Text>
+                        </View>
+                    ))}
+                </View>
+                    */}
+                    <View style={styles.reportSection}>
+                        <Text style={styles.label}>Retrieved {docList.length} assignments</Text>
+                        <SectionList
+                            sections={payReport.assignmentSections}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => <ReportCategoryItem assignment={item} />}
+                            renderSectionHeader={({ section: { title } }) => (
+                                <SectionHeader title={title} />
+                            )}
+                        />
                     </View>
-                    {/*
-            <View style={styles.reportSection}>
-                <Text style={styles.label}>Retrieved {docList.length} assignments</Text>
-                <FlatList
-                    data={docList}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item.id}
-                    extraData={refresh}
-                />
-            </View>
-            */}
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView >
@@ -273,5 +351,17 @@ const styles = StyleSheet.create({
         color: '#34495e',
         marginBottom: 8,
         marginLeft: 2,
+    },
+    item: {
+        backgroundColor: '#f9c2ff',
+        padding: 20,
+        marginVertical: 8,
+    },
+    header: {
+        fontSize: 32,
+        backgroundColor: '#fff',
+    },
+    title: {
+        fontSize: 24,
     },
 });

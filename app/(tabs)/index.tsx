@@ -20,14 +20,14 @@ import InfoIcon from '../../components/InfoIcon';
 // End of imports
 
 export const CATEGORIES = [
-  { value: 'catcommittee', label: 'Committee meeting', payable: true },
-  { value: 'catcon', label: 'Constituent Issue', payable: true },
-  { value: 'catcouncil', label: 'Council meeting', payable: true },
-  { value: 'catphone', label: 'Phone call', payable: true },
-  { value: 'catbreak', label: 'Break', payable: false },
-  { value: 'catoffice', label: 'Office work', payable: false },
-  { value: 'catadmin', label: 'Admin', payable: false },
-  { value: 'catidle', label: 'Available', payable: false },
+  { id: 'catcommittee', label: 'Committee meeting', payable: true },
+  { id: 'catcon', label: 'Constituent Issue', payable: true },
+  { id: 'catcouncil', label: 'Council meeting', payable: true },
+  { id: 'catphone', label: 'Phone call', payable: true },
+  { id: 'catbreak', label: 'Break', payable: false },
+  { id: 'catoffice', label: 'Office work', payable: false },
+  { id: 'catadmin', label: 'Admin', payable: false },
+  { id: 'catidle', label: 'Available', payable: false },
 ];
 
 export enum Collection {
@@ -238,7 +238,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeAreaContainer}>
-      {console.log("JSX: userData=", userData)}
+      {/* console.log("JSX: userData=", userData) */}
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
