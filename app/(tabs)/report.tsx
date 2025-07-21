@@ -16,7 +16,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { useUserContext } from '../../contexts/UserContext';
 import SectionHeader from '../../components/SectionHeader';
 import AssignmentItem from '../../components/AssignmentItem';
-import ReportCategoryItem from '../../components/ReportCategoryItem';
+import InfoIcon from '../../components/InfoIcon';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
@@ -226,13 +226,11 @@ export default function ReportScreen() {
                     style={styles.keyboardAvoid}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
-                    <ScrollView style={styles.reportContainer}>
-                        <View style={styles.reportSection}>
-                            <View style={styles.reportItem}>
-                                <Text style={[styles.text, { fontWeight: "bold" }]}>You must sign in to view your report</Text>
-                            </View>
+                    <View style={styles.reportSection}>
+                        <View style={styles.reportItem}>
+                            <Text style={[styles.text, { fontWeight: "bold" }]}>You must sign in to view your report</Text>
                         </View>
-                    </ScrollView>
+                    </View>
                 </KeyboardAvoidingView>
             </SafeAreaView>
         );
@@ -244,32 +242,40 @@ export default function ReportScreen() {
                 style={styles.keyboardAvoid}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <ScrollView style={styles.reportContainer}
-                    contentContainerStyle={styles.reportContainerContent}
-                >
+                <View style={styles.reportContainer}>
 
                     {/* Overview */}
                     <View style={styles.reportSection}>
                         <Text style={styles.label}>Overview</Text>
                         <View style={[styles.reportItem, { flexDirection: 'column' }]}>
-                            <Text style={{ fontWeight: "bold" }}>Total minutes online:</Text>
-                            <Text >{payReport.sessionInfo.minutes.toFixed()}</Text>
-                            <Text style={{ fontWeight: "bold" }}>Total minutes on assignments:</Text>
-                            <Text >{payReport.totalAssignmentMinutes.toFixed()}</Text>
-                            <Text style={{ fontWeight: "bold" }}>Total assignments:</Text>
-                            <Text >{payReport.totalAssignments.toFixed()}</Text>
-                        </View>
-                        <View style={styles.reportItem}>
-                            <Text style={{ fontWeight: "bold" }}>Paid minutes:</Text>
-                            <Text >{payReport.paidMinutes.toFixed()}</Text>
-                            <Text style={{ fontWeight: "bold" }}>Paid assignments:</Text>
-                            <Text >{payReport.paidAssignments.toFixed()}</Text>
+                            <View style={{ flexDirection: 'row' }}>
+                                <Text style={styles.textBoxText}>Total minutes online: </Text>
+                                <Text style={[styles.textBoxText]} > {payReport.sessionInfo.minutes.toFixed()} </Text>
+                                <InfoIcon
+                                    title="Earnings overview (more needed later)"
+                                    helpText="This is the time you have been signed on to the application"
+                                />
+                            </View>
+                            <View style={{ flexDirection: 'row' }}>
+                                <Text style={styles.textBoxText}>Total minutes on assignments: </Text>
+                                <Text style={styles.textBoxText}>{payReport.totalAssignmentMinutes.toFixed()}</Text>
+                                <InfoIcon
+                                    title="Earnings overview (more needed later)"
+                                    helpText="Not all the time signed in is on assignments"
+                                />
+                            </View>
+                            <View style={{ flexDirection: 'row' }}>
+                                <Text style={styles.textBoxText}>Paid minutes: </Text>
+                                <Text style={styles.textBoxText}>{payReport.paidMinutes.toFixed()}</Text>
+                                <InfoIcon
+                                    helpText="As an independent gig worker, your own organization and preparation work is not paid."
+                                />
+                            </View>
                         </View>
                     </View>
 
                     {/* Categories */}
                     {/*
-                    <View style={styles.reportSection}>
                         <Text style={styles.label}>Time spent on each category (minutes)</Text>
                     {Object.entries(payReport.categoryInfo).map(([key, value]) => (
                         <View key={key} style={styles.reportItem}>
@@ -281,17 +287,18 @@ export default function ReportScreen() {
                 </View>
                     */}
                     <View style={styles.reportSection}>
-                        <Text style={styles.label}>Retrieved {docList.length} assignments</Text>
+                        <Text style={styles.label}>Breakdown by category</Text>
                         <SectionList
+                            style={styles.sectionList}
                             sections={payReport.assignmentSections}
                             keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => <ReportCategoryItem assignment={item} />}
+                            renderItem={({ item }) => <AssignmentItem assignment={item} />}
                             renderSectionHeader={({ section: { title } }) => (
                                 <SectionHeader title={title} />
                             )}
                         />
                     </View>
-                </ScrollView>
+                </View>
             </KeyboardAvoidingView>
         </SafeAreaView >
     );
@@ -318,7 +325,11 @@ const styles = StyleSheet.create({
     reportContainerContent: {
     },
     reportSection: {
-        marginVertical: 8,
+        marginTop: 8,
+        marginBottom: 8,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
     },
     reportItem: {
         flexDirection: 'row', // Arranges children horizontally
@@ -342,11 +353,22 @@ const styles = StyleSheet.create({
         padding: 10,
         width: 240,
     },
+    sectionList: {
+        // width: '100%', // Ensures the container takes full width
+        marginVertical: 0,
+        borderBottomWidth: 6,
+        borderBottomColor: '#E0E0E0',
+        backgroundColor: '#f9f8fa',
+        elevation: 0,
+    },
     selectedListItem: {
         backgroundColor: '#dfffdf',
     },
-    label: {
+    textBoxText: {
         fontSize: 16,
+    },
+    label: {
+        fontSize: 18,
         fontWeight: '600',
         color: '#34495e',
         marginBottom: 8,

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// Reusable InfoIcon component
-const InfoIcon = ({ helpText, title = "" }) => {
+// Reusable HelpIcon component
+const HelpIcon = ({ helpText, title = "Help" }) => {
     const [modalVisible, setModalVisible] = useState(false);
 
     return (
@@ -29,9 +29,7 @@ const InfoIcon = ({ helpText, title = "" }) => {
                     onPress={() => setModalVisible(false)}
                 >
                     <View style={styles.modalContent}>
-                        {title !== '' ? (
-                            <Text style={styles.modalTitle}>{title}</Text>
-                        ) : null}
+                        <Text style={styles.modalTitle}>{title}</Text>
                         <Text style={styles.modalText}>{helpText}</Text>
                         <TouchableOpacity
                             style={styles.closeButton}
@@ -115,7 +113,7 @@ const styles = StyleSheet.create({
     },
     closeButtonText: {
         color: 'white',
-        fontSize: 12,
+        fontSize: 16,
         fontWeight: '600',
     },
 
@@ -147,4 +145,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default InfoIcon;
+export default HelpIcon;

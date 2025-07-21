@@ -16,7 +16,7 @@ import {
 import { signInAnonymously, signOut } from "firebase/auth";
 import { FIREBASE_AUTH } from '../../lib/firebase';
 import { firestoreService } from '../../services/firestoreService';
-import InfoIcon from '../../components/InfoIcon';
+import HelpIcon from '../../components/HelpIcon';
 // End of imports
 
 export const CATEGORIES = [
@@ -266,7 +266,7 @@ export default function HomeScreen() {
             <View style={styles.formSection}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Sign in:</Text>
-                <InfoIcon
+                <HelpIcon
                   title="Sign In recommendations"
                   helpText="We suggest your given name, or other alias. We make reasonable attempts to be secure, but no guarantees"
                 />
@@ -468,6 +468,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     marginHorizontal: 8,
+    marginVertical: 8,
     backgroundColor: '#FFFFFF', // White background
     borderRadius: 8, // Slightly rounded corners
     borderWidth: 1,

@@ -97,7 +97,7 @@ export default function AddAssignment() {
           {/* Description */}
           <View style={styles.inputSection}>
             <Text style={styles.label}>
-              Description (optional):
+              Assignment description (optional):
             </Text>
             <TextInput
               style={styles.textInput}
