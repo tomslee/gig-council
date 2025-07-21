@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { Assignment, Collection } from './index';
+import { Collection, Assignment } from '../../types/types';
 import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
 

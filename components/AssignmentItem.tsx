@@ -8,7 +8,7 @@ import {
     Animated,
     LayoutAnimation,
 } from 'react-native';
-import { Assignment } from '../app/(tabs)/index';
+import { Assignment } from '../types/types';
 interface AssignmentItemProps {
     assignment: Assignment;
 }
@@ -72,7 +72,7 @@ const AssignmentItem: React.FC<AssignmentItemProps> = ({ assignment }) => {
                             <Text style={styles.activityDescription}>{assignment.description}</Text>
                         </View>
                         <Text style={styles.activityName}>{assignment.startTime?.toLocaleDateString('en-CA')}</Text>
-                        {assignment.endTime && <Text style={styles.completed}>✓ Completed</Text>}
+                        {assignment.endTime && <Text style={styles.completed}> ✓ </Text>}
                     </View>
                 </View>
             )}
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     categoryName: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 16,
+        //fontWeight: '600',
         color: '#333',
         marginBottom: 2,
     },
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     },
     activityName: {
         fontSize: 16,
-        fontWeight: '500',
+        // fontWeight: '500',
         color: '#333',
         marginBottom: 2,
     },
@@ -238,9 +238,9 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
     completed: {
-        fontSize: 12,
+        fontSize: 16,
         color: '#66B2B2',
-        fontWeight: 'bold',
+        //fontWeight: 'bold',
     },
 });
 

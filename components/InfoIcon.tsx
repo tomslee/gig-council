@@ -14,8 +14,8 @@ const InfoIcon = ({ helpText, title = "" }) => {
                 accessibilityLabel="Help information"
                 accessibilityHint={`Get help about ${title.toLowerCase()}`}
             >
-                {/* <Ionicons name="information-circle-outline" size={20} color="#66B2B2" /> */}
-                <Ionicons name="help-circle-outline" size={20} color="#66B2B2" />
+                <Ionicons name="information-circle-outline" size={20} color="#66B2B2" />
+                {/* <Ionicons name="help-circle-outline" size={20} color="#66B2B2" />*/}
             </TouchableOpacity>
 
             <Modal

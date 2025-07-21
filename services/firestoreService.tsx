@@ -11,7 +11,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { FIRESTORE_DB } from '../lib/firebase';
-import { Assignment, Session } from '../app/(tabs)/index';
+import { Assignment, Session } from '../types/types';
 
 export const firestoreService = {
 

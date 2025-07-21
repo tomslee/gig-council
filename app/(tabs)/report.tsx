@@ -10,9 +10,9 @@ import {
     ScrollView,
     SectionList,
 } from 'react-native';
-import { Assignment, Collection, CATEGORIES } from './index';
-import { firestoreService } from '../../services/firestoreService';
 import { useIsFocused } from "@react-navigation/native";
+import { Assignment, Collection, CATEGORIES } from '../../types/types';
+import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
 import SectionHeader from '../../components/SectionHeader';
 import AssignmentItem from '../../components/AssignmentItem';
