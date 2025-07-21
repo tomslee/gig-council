@@ -39,10 +39,10 @@ const AssignmentItem: React.FC<AssignmentItemProps> = ({ assignment }) => {
                 <View style={styles.categoryLeft}>
                     {/* <View style={[styles.colorIndicator, { backgroundColor: item.color }]} /> */}
                     <View style={styles.assignmentInfo}>
+                        {assignment.endTime && <Text style={styles.completed}>✓ </Text>}
                         <Text style={styles.categoryName}>{assignment.startTime?.toLocaleDateString('en-CA')}: {assignment.description}</Text>
                         {/* <Text style={styles.categoryTime}>{item.totalTime}</Text> */}
                         {/* </View> */}
-                        {assignment.endTime && <Text style={styles.completed}>✓ Completed</Text>}
                     </View>
                 </View>
             </TouchableOpacity>
@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     assignmentInfo: {
+        flexDirection: 'row',
         flex: 1,
     },
     categoryName: {

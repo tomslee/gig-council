@@ -25,6 +25,13 @@ export default function ReportScreen() {
     const { userData } = useUserContext();
     const [docList, setDocList] = useState<any>([]);
 
+    function convertMinutesToHoursAndMinutes(totalMinutes: number): { hours: number; minutes: number } {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return { hours, minutes };
+    }
+
+
     class SessionInfo {
         minutes: number;
         sessions: number;
@@ -74,7 +81,6 @@ export default function ReportScreen() {
             data
         }));
     };
-
 
     type DailyPayReport = {
         "date": string;

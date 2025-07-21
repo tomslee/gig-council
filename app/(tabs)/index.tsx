@@ -27,7 +27,6 @@ export const CATEGORIES = [
   { id: 'catbreak', label: 'Break', payable: false },
   { id: 'catoffice', label: 'Office work', payable: false },
   { id: 'catadmin', label: 'Admin', payable: false },
-  { id: 'catidle', label: 'Available', payable: false },
 ];
 
 export enum Collection {
@@ -93,6 +92,7 @@ export default function HomeScreen() {
       } catch (error) {
         console.error("Error retrieving assignments:", error);
       } finally {
+        setLocalUsername(userData ? userData.defaultUsername : '');
         setLoading(false);
         setRefresh(!refresh);
       }; // try-catch
