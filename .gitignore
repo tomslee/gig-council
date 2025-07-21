@@ -22,6 +22,9 @@ dist/
 temp/
 tmp/
 
+#TS API keys
+lib/firebase.tsx
+
 # iOS specific
 ios/build/
 ios/*.xcworkspace
