@@ -22,15 +22,18 @@ dist/
 temp/
 tmp/
 
-#TS API keys
+#TS API keys and so on
+secrets/
 lib/config.tsx
 
 # iOS specific
+ios/
 ios/build/
 ios/*.xcworkspace
 !ios/*/GoogleService-Info.plist # If you manage Firebase config through Git
 
 # Android specific
+ android/
 android/build/
 android/.gradle/
 android/app/
