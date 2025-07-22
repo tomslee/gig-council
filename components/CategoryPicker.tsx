@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { CATEGORIES } from '@/app/(tabs)/index';
+import { CATEGORIES } from '../types/types';
 
 type Props = {
     inputHandler: (text: string) => void;

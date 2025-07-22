@@ -23,7 +23,7 @@ temp/
 tmp/
 
 #TS API keys
-lib/firebase.tsx
+lib/config.tsx
 
 # iOS specific
 ios/build/
