@@ -24,6 +24,7 @@ export default function AddAssignment() {
     endTime: null,
   });
   const { userData, saveUserData, updateUserData, clearUserData, isLoading } = useUserContext();
+  console.log("In addAssignment: userData=", userData);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prevFormData) => ({
@@ -33,7 +34,6 @@ export default function AddAssignment() {
   };
 
   const addAssignment = async () => {
-    console.log("In addAssignment");
     // Close any open assignments
     try {
       await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);

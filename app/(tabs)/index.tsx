@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useIsFocused } from "@react-navigation/native";
+import { Link } from 'expo-router';
 import { UserData, useUserContext } from '../../contexts/UserContext';
 import {
+  Button,
   View,
   TouchableOpacity,
   Text,
@@ -17,6 +19,7 @@ import { signInAnonymously, signOut } from "firebase/auth";
 import { FIREBASE_AUTH } from '../../lib/firebase';
 import { firestoreService } from '../../services/firestoreService';
 import HelpIcon from '../../components/HelpIcon';
+import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment, Session } from '../../types/types';
 // End of imports
 
@@ -212,21 +215,23 @@ export default function HomeScreen() {
       >
         <View style={styles.formContainer}>
           {/* Welcome banner */}
-          {(userData && userData.username && userData.sessionID) ? (
-            <View style={styles.formSection}>
+          <View style={styles.formSection}>
+            {(userData && userData.username && userData.sessionID) ? (
               <View style={styles.bannerSection}>
                 <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.username}.</Text>
+                <Link style={[styles.bannerText, { color: "#66B2B2" }]} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
+                </Link>
               </View>
-            </View>
-          ) : null}
-          {(userData && !userData.sessionID) ? (
-            <View style={styles.formSection}>
+            ) : null}
+            {(userData && !userData.sessionID) ? (
               <View style={styles.bannerSection}>
                 <Text style={styles.bannerText}>Welcome to the Gig Council Challenge.</Text>
                 <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
+                <Link style={[styles.bannerText, { color: "#66B2B2" }]} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
+                </Link>
               </View>
-            </View>
-          ) : null}
+            ) : null}
+          </View>
 
           {/* Sign in section */}
           {(userData && !userData.sessionID) ? (

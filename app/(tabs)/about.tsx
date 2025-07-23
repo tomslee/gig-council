@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View, Linking } from 'react-native';
+import { Link } from 'expo-router';
 
 export default function AboutScreen() {
     return (
@@ -8,12 +9,15 @@ export default function AboutScreen() {
                     address the impact of ride-hailing apps on workers, existing transportation
                     systems, climate change, public health and the public realm.
                 </Text>
-                <Text style={[styles.bannerText, { color: 'blue', textDecorationLine: 'underline', textAlign: 'center' }]}
+                <Text style={[styles.bannerText, { textDecorationLine: 'underline', textAlign: 'center' }]}
                     onPress={() => Linking.openURL('https://ridefair.ca')}>
                     Learn more about RideFair
                 </Text>
+                <Link style={[styles.bannerText, { textDecorationLine: 'underline', textAlign: 'center' }]}
+                    href='/modal_gig_challenge'>Learn more about the RideFair Gig Challenge
+                </Link>
             </View>
-        </View>
+        </View >
     );
 }
 

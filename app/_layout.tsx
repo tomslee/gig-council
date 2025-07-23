@@ -6,6 +6,13 @@ export default function RootLayout() {
     <UserContextProvider>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="modal_gig_challenge" // Name should match the file name (without .tsx)
+          options={{
+            presentation: 'modal',
+            headerShown: false, // Optional: hide header for a truly full-screen experience
+          }}
+        />
       </Stack>
     </UserContextProvider>
   );
