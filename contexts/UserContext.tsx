@@ -10,6 +10,7 @@ export interface UserData {
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import CrossPlatformStorage from '../components/CrossPlatformStorage';
 
 interface UserContextType {
   userData: UserData | null;
@@ -38,9 +39,14 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
   const loadUserData = async () => {
     try {
       const storedUsername = "";
+      /*
       const storedDefaultUsername = await SecureStore.getItemAsync("_defaultUsername");
       const storedSessionID = await SecureStore.getItemAsync("_sessionID");
       const storedIsOnAssignment = (SecureStore.getItem("_isOnAssignment") === "true");
+      */
+      const storedDefaultUsername = await CrossPlatformStorage.getItem("_defaultUsername");
+      const storedSessionID = await CrossPlatformStorage.getItem("_sessionID");
+      const storedIsOnAssignment = (await CrossPlatformStorage.getItem("_isOnAssignment") === "true");
       const storedUserData: UserData = {
         username: storedDefaultUsername ? storedDefaultUsername : "",
         defaultUsername: storedDefaultUsername ? storedDefaultUsername : "",
@@ -60,10 +66,17 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
 
   const saveUserData = async (newUserData: UserData) => {
     try {
+      /*
       await SecureStore.setItemAsync('_username', newUserData.username);
       await SecureStore.setItemAsync('_defaultUsername', newUserData.defaultUsername);
       await SecureStore.setItemAsync('_sessionID', newUserData.sessionID);
       await SecureStore.setItemAsync('_isOnAssignment', newUserData.isOnAssignment.toString());
+      */
+      await CrossPlatformStorage.setItem('_username', newUserData.username);
+      await CrossPlatformStorage.setItem('_defaultUsername', newUserData.defaultUsername);
+      await CrossPlatformStorage.setItem('_sessionID', newUserData.sessionID);
+      await CrossPlatformStorage.setItem('_isOnAssignment', newUserData.isOnAssignment.toString());
+
       setUserData(newUserData);
     } catch (error) {
       console.error('Error saving username:', error);

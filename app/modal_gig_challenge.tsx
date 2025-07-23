@@ -36,9 +36,9 @@ export default function ReadMore() {
                         when "engaged" on an assignment, and you would be responsible for your
                         own work-related expenses.
                     </Text>
-                    <Text style={styles.paragraph} >The RideFair Gig Challenge
+                    <Text style={styles.paragraph} >What does this mean in reality? The RideFair Gig Challenge
                         tracks your time and earnings as if you were a gig worker, to shine a light on
-                        the implications of the gig-employment model.
+                        the implications of gig-work.
                     </Text>
                     <Text style={styles.h1}>Minimum wage and gig worker reality
                     </Text>
@@ -47,7 +47,7 @@ export default function ReadMore() {
                             Digital Platform Workers' Rights Act</Text> came into effect.
                     </Text>
                     <Text style={styles.paragraph}>
-                        "Digital platform workers" include ridehail drivers for Uber and Lyft, delivery workers for DoorDash and
+                        "Digital platform workers" includes ridehail drivers for Uber and Lyft, delivery workers for DoorDash and
                         UberEats, and anyone else providing a service to a customer through an online platform, whether they are classified
                         as an employee or, as is far more common, an "independent contractor".
                     </Text>
@@ -57,7 +57,7 @@ export default function ReadMore() {
                     </Text>
                     <Text style={styles.paragraph}>
                         The Act essentially creates a new underclass of worker in Ontario, excluded from the minimum wage protections that
-                        others in Ontario enjoy, and working instead under a separate --- and worse regime.
+                        others enjoy, and working instead under a separate --- and worse --- regime.
                     </Text>
                     <Text style={styles.paragraph}>
                         Specifically, a minimum wage is guaranteed only when a worker is "engaged" on an assignment: from the time an Uber driver accepts
