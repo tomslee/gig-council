@@ -44,8 +44,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "d7e144e1-f259-427d-8465-2fa48b0f737c"
+        "projectId": "88ce4772-2bf3-4c9d-a4c4-aa54d278be72"
       }
-    }
+    },
+    "owner": "tom-slee"
   }
 }
