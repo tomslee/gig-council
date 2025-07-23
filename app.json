@@ -10,7 +10,6 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "package": "net.tomslee.gigcouncil",
       "bundleIdentifier": "net.tomslee.gigcouncil"
     },
     "android": {
@@ -41,6 +40,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d7e144e1-f259-427d-8465-2fa48b0f737c"
+      }
     }
   }
 }
