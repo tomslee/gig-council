@@ -8,3 +8,7 @@ enter on login, in a Firebase database. Access to that may not be strongly prote
 
 On login, please choose a user name that you can remember, but not one that identifies
 you individually.
+
+Apart from your user name, your login session times, and your entered activities no other information is stored on device or in the cloud.
+
+For any further questions, please email info@tomslee.net.
