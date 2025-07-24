@@ -36,6 +36,7 @@ ios/*.xcworkspace
 !ios/*/GoogleService-Info.plist # If you manage Firebase config through Git
 
 # Android specific
+android/
 android/build/
 android/.gradle/
 android/app/
