@@ -26,6 +26,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="gig-council"/>
+        <data android:scheme="exp+gig-council"/>
       </intent-filter>
     </activity>
   </application>
