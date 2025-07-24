@@ -26,6 +26,8 @@ tmp/
 expo-env.d.ts
 secrets/
 lib/config.tsx
+# Image source
+*.xcf
 
 # iOS specific
 ios/
