@@ -125,6 +125,12 @@ export default function HomeScreen() {
         setDocList([]);
         await firebaseSignIn();
         const trimmedUsername = localUsername.trim();
+        if (!trimmedUsername) {
+          alert("Please enter a username to continue.");
+          saveUserData(userData);
+          setLoading(false);
+          return;
+        }
         await firestoreService.closeAllSessionsForOwner(Collection.session, trimmedUsername);
         const newUserData: UserData = {
           username: trimmedUsername,
