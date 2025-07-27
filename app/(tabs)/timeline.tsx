@@ -250,48 +250,29 @@ export default function ReportScreen() {
             >
                 <View style={styles.reportContainer}>
 
-                    {/* Overview */}
-                    <View style={styles.reportSection}>
-                        <Text style={styles.label}>Overview</Text>
-                        <View style={[styles.reportItem, { flexDirection: 'column' }]}>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={styles.textBoxText}>Total minutes online: </Text>
-                                <Text style={[styles.textBoxText]} > {payReport.sessionInfo.minutes.toFixed()} </Text>
-                                <InfoIcon
-                                    title="Earnings overview (more needed later)"
-                                    helpText="This is the time you have been signed on to the application"
-                                />
-                            </View>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={styles.textBoxText}>Total minutes on assignments: </Text>
-                                <Text style={styles.textBoxText}>{payReport.totalAssignmentMinutes.toFixed()}</Text>
-                                <InfoIcon
-                                    title="Earnings overview (more needed later)"
-                                    helpText="Not all the time signed in is on assignments"
-                                />
-                            </View>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={styles.textBoxText}>Paid minutes: </Text>
-                                <Text style={styles.textBoxText}>{payReport.paidMinutes.toFixed()}</Text>
-                                <InfoIcon
-                                    helpText="As an independent gig worker, your own organization and preparation work is not paid."
-                                />
-                            </View>
-                        </View>
-                    </View>
-
                     {/* Categories */}
-                    {/*
+                    <View style={styles.reportSection}>
                         <Text style={styles.label}>Time spent on each category (minutes)</Text>
-                    {Object.entries(payReport.categoryInfo).map(([key, value]) => (
-                        <View key={key} style={styles.reportItem}>
-                            <Text style={{ fontWeight: "bold" }}>{key}: </Text>
-                            <Text >{value.minutes.toFixed()} mins.</Text>
-                            <Text >{value.assignments.toFixed()} assignments.</Text>
-                        </View>
-                    ))}
-                </View>
-                    */}
+                        {Object.entries(payReport.categoryInfo).map(([key, value]) => (
+                            <View key={key} style={styles.reportItem}>
+                                <Text style={{ fontWeight: "bold" }}>{key}: </Text>
+                                <Text >{value.minutes.toFixed()} mins.</Text>
+                                <Text >{value.assignments.toFixed()} assignments.</Text>
+                            </View>
+                        ))}
+                    </View>
+                    <View style={styles.reportSection}>
+                        <Text style={styles.label}>Breakdown by category</Text>
+                        <SectionList
+                            style={styles.sectionList}
+                            sections={payReport.assignmentSections}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => <AssignmentItem assignment={item} />}
+                            renderSectionHeader={({ section: { title } }) => (
+                                <SectionHeader title={title} />
+                            )}
+                        />
+                    </View>
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView >

@@ -42,6 +42,15 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
+                name="timeline"
+                options={{
+                    title: 'Timeline',
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? 'document-text-sharp' : 'time-outline'} color={color} size={24} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="about"
                 options={{
                     title: 'About',
