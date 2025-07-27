@@ -1,5 +1,5 @@
 /*
- * User Context holds the 
+ * User Context holds the UserData structure and makes it available to various screens. 
  */
 export interface UserData {
   username: string,
