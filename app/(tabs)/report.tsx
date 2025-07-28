@@ -258,28 +258,30 @@ export default function ReportScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <ScrollView>
-                    <View style={styles.reportContainer}>
-                        {/* Descriptive report*/}
-                        <Text style={styles.titleText}>
-                            Congratulations!
-                        </Text>
-                        <Text style={styles.paragraph}>
-                            Today you spent <Text style={{ fontWeight: 'bold' }}>{payReport.paidMinutes.toFixed()} minutes</Text> engaged in paid assignments.
-                            Thanks to the Ontario Digital Platform Workers' Rights Act, you are guaranteed a minimum
-                            wage of $17.20 / hour for those minutes, for a total of <Text style={{ fontWeight: 'bold' }}>${(17.20 * payReport.paidMinutes / 60).toFixed(2)}!</Text>
-                        </Text>.
-                        <Text style={styles.paragraph}>
-                            Thanks also for spending a total of <Text style={{ fontWeight: 'bold' }}>{(payReport.totalAssignmentMinutes - payReport.paidMinutes).toFixed()}&nbsp;minutes</Text> on unpaid assignments, like office work
-                            and administrative tasks. Even though you won't get paid for that time,
-                            we love that you're investing in your future, ensuring that you present your best self to your constituents and to the City of Toronto.
-                        </Text>
-                        <Text style={styles.paragraph}>
-                            And let's not forget, thanks also for spending a total of <Text style={{ fontWeight: 'bold' }}>{payReport.sessionInfo.minutes.toFixed()} minutes</Text> signed on and
-                            available for work. Even though you won't get paid for much of that time, it is great to know you were available for your
-                            constituents and coworkers in case anyone needed you.
-                        </Text>
-                        <Text style={styles.paragraph}>Let's make tomorrow an even better day!</Text>
-                    </View>
+                    {/* Descriptive report*/}
+                    {userData && (
+                        <View style={styles.reportContainer}>
+                            <Text style={styles.titleText}>
+                                Congratulations {userData.username}!
+                            </Text>
+                            <Text style={styles.paragraph}>
+                                Today you have spent <Text style={{ fontWeight: 'bold' }}>{payReport.paidMinutes.toFixed()} minutes</Text> engaged in paid assignments.
+                                Thanks to the Ontario Digital Platform Workers' Rights Act, you are guaranteed a minimum
+                                wage of $17.20 / hour for those minutes, for a total of <Text style={{ fontWeight: 'bold' }}>${(17.20 * payReport.paidMinutes / 60).toFixed(2)}!</Text>.
+                            </Text>
+                            <Text style={styles.paragraph}>
+                                Thanks also for spending a total of <Text style={{ fontWeight: 'bold' }}>{(payReport.totalAssignmentMinutes - payReport.paidMinutes).toFixed()}&nbsp;minutes</Text> on unpaid assignments, like office work
+                                and administrative tasks. Even though you won't get paid for that time,
+                                we love that you're investing in your future, ensuring that you present your best self to your constituents and to the City of Toronto.
+                            </Text>
+                            <Text style={styles.paragraph}>
+                                And let's not forget, thanks also for spending a total of <Text style={{ fontWeight: 'bold' }}>{payReport.sessionInfo.minutes.toFixed()} minutes</Text> signed on and
+                                available for work. Even though you won't get paid for much of that time, it is great to know you were available for your
+                                constituents and coworkers in case anyone needed you.
+                            </Text>
+                            <Text style={styles.paragraph}>Let's make tomorrow an even better day!</Text>
+                        </View>
+                    )}
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView >

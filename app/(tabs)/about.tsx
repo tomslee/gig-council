@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View, Linking } from 'react-native';
 import { Link } from 'expo-router';
+import * as Application from 'expo-application';
+
 
 export default function AboutScreen() {
     return (
@@ -9,6 +11,7 @@ export default function AboutScreen() {
                     address the impact of ride-hailing apps on workers, existing transportation
                     systems, climate change, public health and the public realm.
                 </Text>
+                <Text style={styles.bannerText}>Gig Council version {Application.nativeApplicationVersion}</Text>
                 <Text style={[styles.bannerText, { textDecorationLine: 'underline', textAlign: 'center' }]}
                     onPress={() => Linking.openURL('https://ridefair.ca')}>
                     Learn more about RideFair

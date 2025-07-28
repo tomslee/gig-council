@@ -48,7 +48,6 @@ const CategoryPicker = ({ initialCategory, inputHandler }: Props) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        height: 320,
     },
     label: {
         fontSize: 16,

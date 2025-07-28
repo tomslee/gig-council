@@ -1,7 +1,7 @@
 import CategoryPicker from '@/components/CategoryPicker';
 import TimePicker from '@/components/TimePicker';
-import { useState, useEffect } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect, useRef } from 'react';
+import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from "@react-navigation/native";
 import {
   View,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ScrollView,
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
@@ -30,6 +31,8 @@ export default function AddAssignment() {
   const [loading, setLoading] = useState<boolean>(false);
   const isFocused = useIsFocused();
   const { assignmentID } = useLocalSearchParams<{ assignmentID: string }>();
+  const isReturningFromNavigation = useRef(false);
+
 
   const handleInputChange = (field: string, value: string) => {
     console.log("AddAssignment.handleInputChange: field=", field, ", value=", value);
@@ -82,6 +85,16 @@ export default function AddAssignment() {
     setLoading(false);
   }, [isFocused, userData]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      // If we're returning from programmatic navigation and have params, clear them
+      if (isReturningFromNavigation.current && assignmentID) {
+        router.replace('/(tabs)/add_assignment'); // Clear the parameters
+        isReturningFromNavigation.current = false;
+      }
+    }, [assignmentID])
+  );
+
   const addAssignment = async () => {
     // Close any open assignments
     try {
@@ -117,7 +130,7 @@ export default function AddAssignment() {
         startTime: null,
         endTime: null,
       });
-      router.navigate('/'); // Navigate to the Home Screen
+      router.replace('/'); // Navigate to the Home Screen
     } catch (e) {
       console.error('Error re-initializing form: ', e);
     }
@@ -136,13 +149,13 @@ export default function AddAssignment() {
           startTime: formAssignment.startTime,
           endTime: formAssignment.endTime,
         };
-        console.log("updateAssignment: activeAssginment=", activeAssignment);
         await firestoreService.updateAssignment(Collection.assignment, activeAssignment);
       };
-      console.log("Just before updating: formAssignment=", formAssignment);
     } catch (e) {
       console.error('Error updating assignment: ', e);
     };
+    // for navigation purposes.
+    const fromTimeline = formAssignment.endTime;
     // Re-initialize the form data
     try {
       setFormAssignment({
@@ -152,23 +165,19 @@ export default function AddAssignment() {
         startTime: null,
         endTime: null,
       });
-      router.back(); // Navigate to the place it was launched from 
     } catch (e) {
       console.error('Error re-initializing form: ', e);
     }
-    // Re-initialize the form data
-    try {
-      setFormAssignment({
-        owner: "",
-        description: "",
-        category: "",
-        startTime: null,
-        endTime: null,
-      });
-      router.back(); // Navigate to the place it was launched from 
-    } catch (e) {
-      console.error('Error re-initializing form: ', e);
-    }
+
+    if (fromTimeline) {
+      // must have come from the timeline
+      isReturningFromNavigation.current = true;
+      router.navigate('/(tabs)/timeline');
+    } else {
+      // go home
+      isReturningFromNavigation.current = true;
+      router.replace('/');
+    };
   };
 
   const deleteAssignment = async () => {
@@ -201,88 +210,92 @@ export default function AddAssignment() {
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.formContainer}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.formContainer}>
 
-          {/* Category picker */}
-          <View style={styles.formSection}>
-            <Text style={styles.label}>Work category:</Text>
-            <CategoryPicker
-              initialCategory={assignmentID && formAssignment.category}
-              inputHandler={(text: string) => handleInputChange('category', text)}
-            />
-
-            {/* Description */}
-            <Text style={styles.label}>
-              Assignment description (optional):
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Type an assignment description..."
-              placeholderTextColor="gray" // Sets
-              onChangeText={(text: string) => handleInputChange('description', text)}
-              id="description"
-              value={formAssignment.description}
-            />
-          </View>
-
-          {/* End time picker for edits */}
-          {(userData && assignmentID && formAssignment.endTime) && (
+            {/* Category picker */}
             <View style={styles.formSection}>
-              <Text style={styles.label}>
-                This assignment is recorded as starting at {formAssignment.startTime?.toLocaleDateString('en-CA',
-                  { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
-                {/* console.log("above TimePicker: displaying formAssignment", formAssignment) */}
-                and ending at {formAssignment.endTime?.toLocaleDateString('en-CA',
-                  { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}</Text>
-              <Text style={styles.text}>You cannot fix the start time, but you can fix the end time here, for example if you forgot to close the
-                assignment when you completed it, but every assignment must end on the same day it started.
-              </Text>
-              <TimePicker
-                time={formAssignment.endTime ? formAssignment.endTime : new Date()}
-                inputHandler={(text: string) => handleInputChange('endTime', text)}
+              <Text style={styles.label}>Work category:</Text>
+              <CategoryPicker
+                initialCategory={assignmentID && formAssignment.category}
+                inputHandler={(text: string) => handleInputChange('category', text)}
               />
             </View>
-          )}
 
-          {/* Start/Save Button */}
-          {(userData && assignmentID ? (
+            {/* Description */}
             <View style={styles.formSection}>
-              <TouchableOpacity
-                style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
-                onPress={updateAssignment}
-                disabled={!userData.sessionID}>
-                <Text style={styles.saveButtonText}>
-                  {userData.sessionID !== "" ? 'Save Assignment' : 'You must sign in to edit an assignment'}
-                </Text>
-              </TouchableOpacity>
+              <Text style={styles.label}>
+                Assignment description (optional):
+              </Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Type an assignment description..."
+                placeholderTextColor="gray" // Sets
+                onChangeText={(text: string) => handleInputChange('description', text)}
+                id="description"
+                value={formAssignment.description}
+              />
             </View>
-          ) : (
-            <View style={styles.formSection}>
-              <TouchableOpacity
-                style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
-                onPress={addAssignment}
-                disabled={!userData.sessionID}>
-                <Text style={styles.saveButtonText}>
-                  {userData.sessionID !== "" ? 'Start Assignment' : 'You must sign in to start an assignment'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
 
-          {/* Delete Button */}
-          {((userData && assignmentID) && (
-            <View style={styles.formSection}>
-              <TouchableOpacity
-                style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
-                onPress={deleteAssignment}
-                disabled={!userData.sessionID}>
-                <Text style={styles.saveButtonText}>
-                  {userData.sessionID !== "" ? 'Delete Assignment' : 'You must sign in to edit an assignment'}
+            {/* End time picker for edits */}
+            {(userData && assignmentID && formAssignment.endTime) && (
+              <View style={styles.formSection}>
+                <Text style={styles.label}>
+                  This assignment is recorded as starting at {formAssignment.startTime?.toLocaleDateString('en-CA',
+                    { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
+                  {/* console.log("above TimePicker: displaying formAssignment", formAssignment) */}
+                  and ending at {formAssignment.endTime?.toLocaleDateString('en-CA',
+                    { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}</Text>
+                <Text style={styles.text}>You cannot fix the start time, but you can fix the end time here, for example if you forgot to close the
+                  assignment when you completed it, but every assignment must end on the same day it started.
                 </Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
+                <TimePicker
+                  time={formAssignment.endTime ? formAssignment.endTime : new Date()}
+                  inputHandler={(text: string) => handleInputChange('endTime', text)}
+                />
+              </View>
+            )}
+
+            {/* Start/Save Button */}
+            {(userData && assignmentID ? (
+              <View style={styles.formSection}>
+                <TouchableOpacity
+                  style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
+                  onPress={updateAssignment}
+                  disabled={!userData.sessionID}>
+                  <Text style={styles.saveButtonText}>
+                    {userData.sessionID !== "" ? 'Save Assignment' : 'You must sign in to edit an assignment'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.formSection}>
+                <TouchableOpacity
+                  style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
+                  onPress={addAssignment}
+                  disabled={!userData.sessionID}>
+                  <Text style={styles.saveButtonText}>
+                    {userData.sessionID !== "" ? 'Start Assignment' : 'You must sign in to start an assignment'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {/* Delete Button */}
+            {((userData && assignmentID) && (
+              <View style={styles.formSection}>
+                <TouchableOpacity
+                  style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
+                  onPress={deleteAssignment}
+                  disabled={!userData.sessionID}>
+                  <Text style={styles.saveButtonText}>
+                    {userData.sessionID !== "" ? 'Delete Assignment' : 'You must sign in to edit an assignment'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView >
   );
@@ -297,21 +310,20 @@ const styles = StyleSheet.create({
   keyboardAvoid: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   formContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    justifyContent: 'space-evenly', // This evenly distributes the form elements
+    // justifyContent: 'space-evenly', // This evenly distributes the form elements
   },
   formSection: {
-    flex: 1,
-    marginVertical: 8,
-    paddingVertical: 8,
+    // marginVertical: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-    justifyContent: 'center',
-  },
-  inputSection: {
-    marginVertical: 8,
+    //justifyContent: 'center',
   },
   textInput: {
     backgroundColor: '#ffffff',

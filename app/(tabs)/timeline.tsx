@@ -215,8 +215,8 @@ export default function ReportScreen() {
     }, [isFocused]);
 
     const openAssignmentForEdit = (id: string) => {
-        router.push({
-            pathname: '/add_assignment', // Navigate to the /add_assignment route
+        router.replace({
+            pathname: '/(tabs)/add_assignment', // Navigate to the /add_assignment route
             params: { assignmentID: id }
         })
     };
