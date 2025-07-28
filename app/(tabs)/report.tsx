@@ -14,8 +14,6 @@ import { useIsFocused } from "@react-navigation/native";
 import { Assignment, Collection, CATEGORIES } from '../../types/types';
 import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
-import SectionHeader from '../../components/SectionHeader';
-import AssignmentItem from '../../components/AssignmentItem';
 import InfoIcon from '../../components/InfoIcon';
 
 export default function ReportScreen() {
@@ -30,7 +28,6 @@ export default function ReportScreen() {
         const minutes = totalMinutes % 60;
         return { hours, minutes };
     }
-
 
     class SessionInfo {
         minutes: number;
@@ -83,7 +80,7 @@ export default function ReportScreen() {
     };
 
     type DailyPayReport = {
-        "date": string;
+        "date": Date;
         "totalSessions": number;
         "totalAssignmentMinutes": number;
         "totalAssignments": number;
@@ -94,9 +91,20 @@ export default function ReportScreen() {
         "assignmentSections": {};
     };
 
+    function isDateToday(someDate: Date): boolean {
+        const today = new Date(); // Creates a Date object for the current moment
+
+        // Compares year, month (0-indexed), and day of the month
+        return (
+            someDate.getFullYear() === today.getFullYear() &&
+            someDate.getMonth() === today.getMonth() &&
+            someDate.getDate() === today.getDate()
+        );
+    }
+
     // Initialize with proper default values
     const [payReport, setPayReport] = useState<DailyPayReport>({
-        date: new Date().toDateString(),
+        date: new Date(),
         totalSessions: 0,
         totalAssignmentMinutes: 0,
         totalAssignments: 0,
@@ -114,8 +122,8 @@ export default function ReportScreen() {
                 if (isFocused && userData) {
                     setDocList([{}]);
                     // Create new report object instead of mutating state directly
-                    let newReport: DailyPayReport = {
-                        date: new Date().toDateString(),
+                    let todayReport: DailyPayReport = {
+                        date: new Date(),
                         totalSessions: 0,
                         totalAssignmentMinutes: 0,
                         totalAssignments: 0,
@@ -126,34 +134,39 @@ export default function ReportScreen() {
                         assignmentSections: {},
                     };
                     for (const category of CATEGORIES) {
-                        newReport.categoryInfo[category.label].minutes = 0;
-                        newReport.categoryInfo[category.label].assignments = 0;
+                        todayReport.categoryInfo[category.label].minutes = 0;
+                        todayReport.categoryInfo[category.label].assignments = 0;
                     };
                     try {
+                        // Handle sessions
                         const sessions = await firestoreService.getAllSessionsByOwner(
                             Collection.session,
                             userData.username);
                         if (sessions) {
                             for (const session of sessions) {
-                                if (session.startTime) {
+                                if (session.startTime && isDateToday(session.startTime)) {
                                     if (session.endTime == null) {
                                         const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60000.0) || 0;
-                                        newReport.sessionInfo["minutes"] += sessionMinutes;
-                                        newReport.sessionInfo["sessions"] += 1;
+                                        todayReport.sessionInfo["minutes"] += sessionMinutes;
+                                        todayReport.sessionInfo["sessions"] += 1;
                                     } else {
                                         const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60000.0) || 0;
-                                        newReport.sessionInfo["minutes"] += sessionMinutes;
-                                        newReport.sessionInfo["sessions"] += 1;
+                                        todayReport.sessionInfo["minutes"] += sessionMinutes;
+                                        todayReport.sessionInfo["sessions"] += 1;
                                     };
                                 };
                             };
                         };
+                        // Handle assignments
                         const assignments = await firestoreService.getAllAssignmentsByOwner(
                             Collection.assignment,
                             userData.username);
                         if (assignments) {
                             for (const assignment of assignments) {
-                                if (assignment.category == '' || assignment.startTime == null || assignment.endTime == null) {
+                                if (assignment.category == '' ||
+                                    assignment.startTime == null ||
+                                    !isDateToday(assignment.startTime) ||
+                                    assignment.endTime == null) {
                                     continue;
                                 };
                                 const assignmentCategory = assignment.category;
@@ -168,24 +181,24 @@ export default function ReportScreen() {
                                 };
                                 const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
                                 if (assignmentMinutes > 0 && assignmentCategory && assignmentCategory !== "") {
-                                    newReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
-                                    newReport.categoryInfo[assignmentCategory].assignments += 1;
+                                    todayReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
+                                    todayReport.categoryInfo[assignmentCategory].assignments += 1;
                                 };
                                 const thisCategory = CATEGORIES.find(item => item["label"] === assignmentCategory) || {};
                                 if ("label" in thisCategory && "payable" in thisCategory) {
                                     if (assignmentMinutes > 0) {
-                                        newReport.totalAssignmentMinutes += assignmentMinutes;
-                                        newReport.totalAssignments += 1;
+                                        todayReport.totalAssignmentMinutes += assignmentMinutes;
+                                        todayReport.totalAssignments += 1;
                                         if (thisCategory["payable"]) {
-                                            newReport["paidMinutes"] += assignmentMinutes;
-                                            newReport["paidAssignments"] += 1;
+                                            todayReport["paidMinutes"] += assignmentMinutes;
+                                            todayReport["paidAssignments"] += 1;
                                         }
                                     };
                                 };
                             };
                             // Now group the assignments by category and add them in to the structure for presentation
-                            newReport.assignmentSections = groupAssignmentsByCategory(assignments);
-                            setPayReport(newReport);
+                            todayReport.assignmentSections = groupAssignmentsByCategory(assignments);
+                            setPayReport(todayReport);
                             setDocList(docList);
                             setRefresh(!refresh);
                         }; // if (assignments)
@@ -224,7 +237,7 @@ export default function ReportScreen() {
     if (userData && !userData.sessionID) {
         return (
             <SafeAreaView style={styles.safeAreaContainer}>
-                <KeyboardAvoidingView
+                <ScrollView
                     style={styles.keyboardAvoid}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
@@ -233,7 +246,7 @@ export default function ReportScreen() {
                             <Text style={[styles.text, { fontWeight: "bold" }]}>You must sign in to view your report</Text>
                         </View>
                     </View>
-                </KeyboardAvoidingView>
+                </ScrollView>
             </SafeAreaView>
         );
     }
@@ -244,55 +257,34 @@ export default function ReportScreen() {
                 style={styles.keyboardAvoid}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <View style={styles.reportContainer}>
-
-                    {/* Overview */}
-                    <View style={styles.reportSection}>
-                        <Text style={styles.label}>Overview</Text>
-                        <View style={[styles.reportItem, { flexDirection: 'column' }]}>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={styles.textBoxText}>Total minutes online: </Text>
-                                <Text style={[styles.textBoxText]} > {payReport.sessionInfo.minutes.toFixed()} </Text>
-                                <InfoIcon
-                                    title="Earnings overview (more needed later)"
-                                    helpText="This is the time you have been signed on to the application"
-                                />
-                            </View>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={styles.textBoxText}>Total minutes on assignments: </Text>
-                                <Text style={styles.textBoxText}>{payReport.totalAssignmentMinutes.toFixed()}</Text>
-                                <InfoIcon
-                                    title="Earnings overview (more needed later)"
-                                    helpText="Not all the time signed in is on assignments"
-                                />
-                            </View>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={styles.textBoxText}>Paid minutes: </Text>
-                                <Text style={styles.textBoxText}>{payReport.paidMinutes.toFixed()}</Text>
-                                <InfoIcon
-                                    helpText="As an independent gig worker, your own organization and preparation work is not paid."
-                                />
-                            </View>
-                        </View>
+                <ScrollView>
+                    <View style={styles.reportContainer}>
+                        {/* Descriptive report*/}
+                        <Text style={styles.titleText}>
+                            Congratulations!
+                        </Text>
+                        <Text style={styles.paragraph}>
+                            Today you spent <Text style={{ fontWeight: 'bold' }}>{payReport.paidMinutes.toFixed()} minutes</Text> engaged in paid assignments.
+                            Thanks to the Ontario Digital Platform Workers' Rights Act, you are guaranteed a minimum
+                            wage of $17.20 / hour for those minutes, for a total of <Text style={{ fontWeight: 'bold' }}>${(17.20 * payReport.paidMinutes / 60).toFixed(2)}!</Text>
+                        </Text>.
+                        <Text style={styles.paragraph}>
+                            Thanks also for spending a total of <Text style={{ fontWeight: 'bold' }}>{(payReport.totalAssignmentMinutes - payReport.paidMinutes).toFixed()}&nbsp;minutes</Text> on unpaid assignments, like office work
+                            and administrative tasks. Even though you won't get paid for that time,
+                            we love that you're investing in your future, ensuring that you present your best self to your constituents and to the City of Toronto.
+                        </Text>
+                        <Text style={styles.paragraph}>
+                            And let's not forget, thanks also for spending a total of <Text style={{ fontWeight: 'bold' }}>{payReport.sessionInfo.minutes.toFixed()} minutes</Text> signed on and
+                            available for work. Even though you won't get paid for much of that time, it is great to know you were available for your
+                            constituents and coworkers in case anyone needed you.
+                        </Text>
+                        <Text style={styles.paragraph}>Let's make tomorrow an even better day!</Text>
                     </View>
-
-                    {/* Categories */}
-                    {/*
-                        <Text style={styles.label}>Time spent on each category (minutes)</Text>
-                    {Object.entries(payReport.categoryInfo).map(([key, value]) => (
-                        <View key={key} style={styles.reportItem}>
-                            <Text style={{ fontWeight: "bold" }}>{key}: </Text>
-                            <Text >{value.minutes.toFixed()} mins.</Text>
-                            <Text >{value.assignments.toFixed()} assignments.</Text>
-                        </View>
-                    ))}
-                </View>
-                    */}
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView >
     );
-}
+};
 
 const styles = StyleSheet.create({
     safeAreaContainer: {
@@ -311,6 +303,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
         borderRadius: 4,
+        backgroundColor: 'white',
     },
     reportContainerContent: {
     },
@@ -334,6 +327,8 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     text: {
+        fontSize: 18,
+        marginTop: 8,
     },
     reportItemText: {
         fontSize: 16,
@@ -357,6 +352,14 @@ const styles = StyleSheet.create({
     textBoxText: {
         fontSize: 16,
     },
+    titleText: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: '#34495e',
+        marginBottom: 8,
+        marginLeft: 2,
+        alignSelf: 'center',
+    },
     label: {
         fontSize: 18,
         fontWeight: '600',
@@ -373,7 +376,11 @@ const styles = StyleSheet.create({
         fontSize: 32,
         backgroundColor: '#fff',
     },
-    title: {
-        fontSize: 24,
+    paragraph: {
+        fontFamily: 'serif',
+        fontSize: 18,
+        lineHeight: 24,
+        marginBottom: 16,
+        color: '#333',
     },
 });

@@ -263,14 +263,14 @@ export const firestoreService = {
     }
   },
 
-  // Delete a document
-  async delete(collectionName: string, docId: string) {
+  // Delete an assignment
+  async deleteAssignment(collectionName: string, docId: string) {
     try {
       const docRef = doc(FIRESTORE_DB, collectionName, docId);
       await deleteDoc(docRef);
       return true;
     } catch (error) {
-      console.error(`Error deleting document:`, error);
+      console.error(`Error deleting assignment:`, error);
       throw error;
     }
   },

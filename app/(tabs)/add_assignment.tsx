@@ -141,7 +141,7 @@ export default function AddAssignment() {
       };
       console.log("Just before updating: formAssignment=", formAssignment);
     } catch (e) {
-      console.error('Error adding assignment: ', e);
+      console.error('Error updating assignment: ', e);
     };
     // Re-initialize the form data
     try {
@@ -156,7 +156,39 @@ export default function AddAssignment() {
     } catch (e) {
       console.error('Error re-initializing form: ', e);
     }
+    // Re-initialize the form data
+    try {
+      setFormAssignment({
+        owner: "",
+        description: "",
+        category: "",
+        startTime: null,
+        endTime: null,
+      });
+      router.back(); // Navigate to the place it was launched from 
+    } catch (e) {
+      console.error('Error re-initializing form: ', e);
+    }
   };
+
+  const deleteAssignment = async () => {
+    // Delete the current assignment
+    if (formAssignment.id) {
+      try {
+        await firestoreService.deleteAssignment(Collection.assignment, formAssignment.id);
+      } catch (e) {
+        console.error('Error deleting assignment: ', e);
+      };
+      router.back(); // Navigate to the place it was launched from 
+    };
+  };
+
+  /*
+  const onReset = () => {
+    setShowAppOptions(false);
+  };
+  */
+
   /*
   const onReset = () => {
     setShowAppOptions(false);
@@ -213,8 +245,8 @@ export default function AddAssignment() {
           )}
 
           {/* Start/Save Button */}
-          <View style={styles.formSection}>
-            {(userData && assignmentID ? (
+          {(userData && assignmentID ? (
+            <View style={styles.formSection}>
               <TouchableOpacity
                 style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
                 onPress={updateAssignment}
@@ -223,7 +255,9 @@ export default function AddAssignment() {
                   {userData.sessionID !== "" ? 'Save Assignment' : 'You must sign in to edit an assignment'}
                 </Text>
               </TouchableOpacity>
-            ) : (
+            </View>
+          ) : (
+            <View style={styles.formSection}>
               <TouchableOpacity
                 style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
                 onPress={addAssignment}
@@ -232,8 +266,22 @@ export default function AddAssignment() {
                   {userData.sessionID !== "" ? 'Start Assignment' : 'You must sign in to start an assignment'}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            </View>
+          ))}
+
+          {/* Delete Button */}
+          {((userData && assignmentID) && (
+            <View style={styles.formSection}>
+              <TouchableOpacity
+                style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
+                onPress={deleteAssignment}
+                disabled={!userData.sessionID}>
+                <Text style={styles.saveButtonText}>
+                  {userData.sessionID !== "" ? 'Delete Assignment' : 'You must sign in to edit an assignment'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ))}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView >
