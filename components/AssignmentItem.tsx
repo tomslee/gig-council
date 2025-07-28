@@ -40,7 +40,7 @@ const AssignmentItem: React.FC<AssignmentItemProps> = ({ assignment }) => {
                     {/* <View style={[styles.colorIndicator, { backgroundColor: item.color }]} /> */}
                     <View style={styles.assignmentInfo}>
                         {assignment.endTime && <Text style={styles.completed}>✓ </Text>}
-                        <Text style={styles.categoryName}>{assignment.startTime?.toLocaleDateString('en-CA')}: {assignment.description}</Text>
+                        <Text style={styles.categoryName}>{assignment.startTime?.toLocaleDateString('en-CA', { weekday: 'short', day: 'numeric', month: 'short' })}: {assignment.description}</Text>
                         {/* <Text style={styles.categoryTime}>{item.totalTime}</Text> */}
                         {/* </View> */}
                     </View>
@@ -71,7 +71,7 @@ const AssignmentItem: React.FC<AssignmentItemProps> = ({ assignment }) => {
                         <View style={styles.detailLeft}>
                             <Text style={styles.activityDescription}>{assignment.description}</Text>
                         </View>
-                        <Text style={styles.activityName}>{assignment.startTime?.toLocaleDateString('en-CA')}</Text>
+                        <Text style={styles.activityName}>{assignment.startTime?.toLocaleDateString('en-CA', { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
                         {assignment.endTime && <Text style={styles.completed}> ✓ </Text>}
                     </View>
                 </View>

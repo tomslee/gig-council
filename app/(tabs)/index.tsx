@@ -1,8 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { useIsFocused } from "@react-navigation/native";
 import { Link } from 'expo-router';
+import { useIsFocused } from "@react-navigation/native";
 import { UserData, useUserContext } from '../../contexts/UserContext';
 import {
   Button,
@@ -41,7 +41,6 @@ export default function HomeScreen() {
       // Get any open assignments for the user
       try {
         setDocList([]);
-        console.log("HomeScreen: userData=", userData);
         if (userData && userData.username) {
           if (isFocused) {
             const assignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userData.username);
@@ -71,7 +70,18 @@ export default function HomeScreen() {
   }, [isFocused, userData]);
 
   const goToAddAssignment = () => {
-    router.navigate('/add_assignment'); // Navigate to the /add_assignment route
+    router.navigate({
+      pathname: '/add_assignment', // Navigate to the /add_assignment route
+      params: { assignmentID: null }
+    })
+  };
+
+  const openAssignmentForEdit = (id: string) => {
+    console.log("Opening assignment", id);
+    router.push({
+      pathname: '/add_assignment', // Navigate to the /add_assignment route
+      params: { assignmentID: id }
+    })
   };
 
   const firebaseSignIn = async () => {
@@ -120,13 +130,12 @@ export default function HomeScreen() {
   const appSignIn = async (): Promise<void> => {
     try {
       if (userData) {
-        console.log("In appSignIn");
         setLoading(true);
         setDocList([]);
         await firebaseSignIn();
         const trimmedUsername = localUsername.trim();
         if (!trimmedUsername) {
-          alert("Please enter a username to continue.");
+          alert("Please type a username to sign in. ");
           saveUserData(userData);
           setLoading(false);
           return;
@@ -274,21 +283,24 @@ export default function HomeScreen() {
                 <Text style={styles.label}>Current assignment...</Text>
               </View>
               <View style={styles.assignmentContainer}>
-                <Text style={styles.listItemText}>
-                  Category: {docList[docList.length - 1]["category"]}
-                </Text>
-                <Text style={styles.listItemText}>
-                  Description: {docList[docList.length - 1]["description"]}
-                </Text>
-                {docList[docList.length - 1]["startTime"] ? (
+                <TouchableOpacity
+                  onPress={() => openAssignmentForEdit(docList[docList.length - 1]["id"])} >
                   <Text style={styles.listItemText}>
-                    Started at {docList[docList.length - 1]["startTime"]
-                      .toLocaleTimeString(undefined, {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                  </Text>) : null
-                }
+                    Category: {docList[docList.length - 1]["category"]}
+                  </Text>
+                  <Text style={styles.listItemText}>
+                    Description: {docList[docList.length - 1]["description"]}
+                  </Text>
+                  {docList[docList.length - 1]["startTime"] ? (
+                    <Text style={styles.listItemText}>
+                      Started at {docList[docList.length - 1]["startTime"]
+                        .toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                    </Text>) : null
+                  }
+                </TouchableOpacity>
               </View>
               <View>
                 <TouchableOpacity
@@ -354,7 +366,7 @@ const styles = StyleSheet.create({
   formSection: {
     flex: 1,
     marginVertical: 8,
-    paddingVertical: 24,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     justifyContent: 'center',
@@ -418,11 +430,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     boxShadow: [{
       color: '#66B2B2',
-      offsetX: 0,
-      offsetY: 3,
+      offsetX: 2,
+      offsetY: 4,
       blurRadius: 2,
     }],
-    elevation: 5,
+    elevation: 4,
   },
   saveButtonText: {
     color: '#ffffff',
@@ -451,5 +463,11 @@ const styles = StyleSheet.create({
     borderRadius: 8, // Slightly rounded corners
     borderWidth: 1,
     borderColor: '#E0E0E0', // Light gray border
+    boxShadow: [{
+      offsetX: 2,
+      offsetY: 4,
+      color: '#E0E0E0',
+    }],
+    elevation: 2
   }
 });

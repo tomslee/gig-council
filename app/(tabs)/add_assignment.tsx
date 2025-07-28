@@ -1,6 +1,8 @@
 import CategoryPicker from '@/components/CategoryPicker';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import TimePicker from '@/components/TimePicker';
+import { useState, useEffect } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useIsFocused } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -16,51 +18,100 @@ import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
 
 export default function AddAssignment() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
+  const { userData, saveUserData, updateUserData, clearUserData, isLoading } = useUserContext();
+  const [formAssignment, setFormAssignment] = useState<Assignment>({
+    owner: (userData && userData.username ? userData.username : ""),
     description: "",
     category: "Admin",
     startTime: null,
     endTime: null,
   });
-  const { userData, saveUserData, updateUserData, clearUserData, isLoading } = useUserContext();
-  console.log("In addAssignment: userData=", userData);
+  const router = useRouter();
+  const [loading, setLoading] = useState<boolean>(false);
+  const isFocused = useIsFocused();
+  const { assignmentID } = useLocalSearchParams<{ assignmentID: string }>();
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      [field]: value,
-    }));
+    console.log("AddAssignment.handleInputChange: field=", field, ", value=", value);
+    if (value) {
+      if (field == 'endTime') {
+        try {
+          const valueDate = new Date(
+            formAssignment.startTime ? formAssignment.startTime.getFullYear() : new Date().getFullYear(),
+            formAssignment.startTime ? formAssignment.startTime.getMonth() : new Date().getMonth(),
+            formAssignment.startTime ? formAssignment.startTime.getDate() : new Date().getDate(),
+            new Date(value).getHours(),
+            new Date(value).getMinutes()
+          );
+          setFormAssignment((prevFormAssignment) => ({
+            ...prevFormAssignment,
+            [field]: valueDate,
+          }));
+          console.log("handleInputChange for endTime 1. startTime=", formAssignment.startTime, "valueDate=", valueDate, "Date(value)=", new Date(value), "setting endTime value=", value);
+        } catch (e) {
+          console.log("handleInputChange endTime error:", e);
+        };
+      } else {
+        setFormAssignment((prevFormAssignment) => ({
+          ...prevFormAssignment,
+          [field]: value,
+        }));
+      };
+    };
   };
+
+  useEffect(() => {
+    setLoading(true);
+    const loadAssignment = async () => {
+      if (assignmentID) {
+        const activeAssignment = await firestoreService.getAssignmentByID(Collection.assignment, assignmentID);
+        if (activeAssignment) {
+          setFormAssignment({
+            id: activeAssignment?.id,
+            owner: activeAssignment?.owner,
+            description: activeAssignment.description,
+            category: activeAssignment?.category,
+            startTime: activeAssignment?.startTime,
+            endTime: activeAssignment?.endTime
+          });
+          console.log("AddAssignment:useEffect: activeAssignment=", activeAssignment);
+        };
+      }
+    };
+    loadAssignment();
+    setLoading(false);
+  }, [isFocused, userData]);
 
   const addAssignment = async () => {
     // Close any open assignments
     try {
-      await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
+      if (userData && userData.username) {
+        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
+      };
     } catch (e) {
       console.error('Error closing open assignments', e);
-    };
+    }
 
     // Add the new assignment
     try {
       if (userData) {
-        const newAssignment: Assignment = {
+        const activeAssignment: Assignment = {
           owner: userData.username,
-          description: formData.description,
-          category: formData.category,
+          description: formAssignment.description,
+          category: formAssignment.category,
           startTime: null,
           endTime: null,
         };
-        await firestoreService.createAssignment(Collection.assignment, newAssignment);
+        await firestoreService.createAssignment(Collection.assignment, activeAssignment);
         updateUserData({ isOnAssignment: true });
-      }
+      };
     } catch (e) {
       console.error('Error adding assignment: ', e);
     };
-
     // Re-initialize the form data
     try {
-      setFormData({
+      setFormAssignment({
+        owner: "",
         description: "",
         category: "",
         startTime: null,
@@ -72,6 +123,40 @@ export default function AddAssignment() {
     }
   };
 
+  const updateAssignment = async () => {
+    // Close any open assignments
+    // Add the new assignment
+    try {
+      if (userData) {
+        const activeAssignment: Assignment = {
+          id: formAssignment.id,
+          owner: userData.username,
+          description: formAssignment.description,
+          category: formAssignment.category,
+          startTime: formAssignment.startTime,
+          endTime: formAssignment.endTime,
+        };
+        console.log("updateAssignment: activeAssginment=", activeAssignment);
+        await firestoreService.updateAssignment(Collection.assignment, activeAssignment);
+      };
+      console.log("Just before updating: formAssignment=", formAssignment);
+    } catch (e) {
+      console.error('Error adding assignment: ', e);
+    };
+    // Re-initialize the form data
+    try {
+      setFormAssignment({
+        owner: "",
+        description: "",
+        category: "",
+        startTime: null,
+        endTime: null,
+      });
+      router.back(); // Navigate to the place it was launched from 
+    } catch (e) {
+      console.error('Error re-initializing form: ', e);
+    }
+  };
   /*
   const onReset = () => {
     setShowAppOptions(false);
@@ -87,15 +172,14 @@ export default function AddAssignment() {
         <View style={styles.formContainer}>
 
           {/* Category picker */}
-          <View style={styles.inputSection}>
+          <View style={styles.formSection}>
             <Text style={styles.label}>Work category:</Text>
             <CategoryPicker
+              initialCategory={assignmentID && formAssignment.category}
               inputHandler={(text: string) => handleInputChange('category', text)}
             />
-          </View>
 
-          {/* Description */}
-          <View style={styles.inputSection}>
+            {/* Description */}
             <Text style={styles.label}>
               Assignment description (optional):
             </Text>
@@ -105,32 +189,51 @@ export default function AddAssignment() {
               placeholderTextColor="gray" // Sets
               onChangeText={(text: string) => handleInputChange('description', text)}
               id="description"
-              value={formData.description}
+              value={formAssignment.description}
             />
           </View>
 
-          {/* Start time picker */}
-          {/*
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>
-              Start time:
-            </Text>
-            <TimePicker
-              time={formData.startTime}
-              inputHandler={(text: string) => handleInputChange('startTime', text)}
-            />
-          </View>
-          */}
+          {/* End time picker for edits */}
+          {(userData && assignmentID && formAssignment.endTime) && (
+            <View style={styles.formSection}>
+              <Text style={styles.label}>
+                This assignment is recorded as starting at {formAssignment.startTime?.toLocaleDateString('en-CA',
+                  { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
+                {/* console.log("above TimePicker: displaying formAssignment", formAssignment) */}
+                and ending at {formAssignment.endTime?.toLocaleDateString('en-CA',
+                  { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}</Text>
+              <Text style={styles.text}>You cannot fix the start time, but you can fix the end time here, for example if you forgot to close the
+                assignment when you completed it, but every assignment must end on the same day it started.
+              </Text>
+              <TimePicker
+                time={formAssignment.endTime ? formAssignment.endTime : new Date()}
+                inputHandler={(text: string) => handleInputChange('endTime', text)}
+              />
+            </View>
+          )}
 
-          {/* Start Button */}
-          <TouchableOpacity
-            style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
-            onPress={addAssignment}
-            disabled={!userData.sessionID}>
-            <Text style={styles.saveButtonText}>
-              {userData.sessionID !== "" ? 'Start Assignment' : 'You must sign in to start an assignment'}
-            </Text>
-          </TouchableOpacity>
+          {/* Start/Save Button */}
+          <View style={styles.formSection}>
+            {(userData && assignmentID ? (
+              <TouchableOpacity
+                style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
+                onPress={updateAssignment}
+                disabled={!userData.sessionID}>
+                <Text style={styles.saveButtonText}>
+                  {userData.sessionID !== "" ? 'Save Assignment' : 'You must sign in to edit an assignment'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.saveButton, userData.sessionID === "" && styles.disabledButton]}
+                onPress={addAssignment}
+                disabled={!userData.sessionID}>
+                <Text style={styles.saveButtonText}>
+                  {userData.sessionID !== "" ? 'Start Assignment' : 'You must sign in to start an assignment'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView >
@@ -149,9 +252,15 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
     justifyContent: 'space-evenly', // This evenly distributes the form elements
+  },
+  formSection: {
+    flex: 1,
+    marginVertical: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    justifyContent: 'center',
   },
   inputSection: {
     marginVertical: 8,
@@ -176,13 +285,13 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: '#66B2B2',
     borderRadius: 12,
+    paddingHorizontal: 8,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 16,
     boxShadow: [{
       color: '#66B2B2',
-      offsetX: 0,
-      offsetY: 3,
+      offsetX: 2,
+      offsetY: 4,
       blurRadius: 2,
     }],
     elevation: 5,
@@ -191,8 +300,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#b2d8d8',
     boxShadow: [{
       color: '#b2d8d8',
-      offsetX: 0,
-      offsetY: 3,
+      offsetX: 2,
+      offsetY: 4,
       blurRadius: 2,
     }],
   },

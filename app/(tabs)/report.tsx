@@ -156,7 +156,6 @@ export default function ReportScreen() {
                                 if (assignment.category == '' || assignment.startTime == null || assignment.endTime == null) {
                                     continue;
                                 };
-                                console.log("Assignment:", assignment);
                                 const assignmentCategory = assignment.category;
                                 const docDescription = assignment.description;
                                 // doc.data() is never undefined for query doc snapshots
@@ -168,14 +167,12 @@ export default function ReportScreen() {
                                     });
                                 };
                                 const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
-                                console.log("nRcA:", newReport.assignmentSections);
                                 if (assignmentMinutes > 0 && assignmentCategory && assignmentCategory !== "") {
                                     newReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
                                     newReport.categoryInfo[assignmentCategory].assignments += 1;
                                 };
                                 const thisCategory = CATEGORIES.find(item => item["label"] === assignmentCategory) || {};
                                 if ("label" in thisCategory && "payable" in thisCategory) {
-                                    console.log("thisCategory = " + thisCategory["label"] + ", " + assignmentMinutes + " minutes");
                                     if (assignmentMinutes > 0) {
                                         newReport.totalAssignmentMinutes += assignmentMinutes;
                                         newReport.totalAssignments += 1;
@@ -186,7 +183,6 @@ export default function ReportScreen() {
                                     };
                                 };
                             };
-                            console.log("Report includes ", docList.length, " assignments");
                             // Now group the assignments by category and add them in to the structure for presentation
                             newReport.assignmentSections = groupAssignmentsByCategory(assignments);
                             setPayReport(newReport);

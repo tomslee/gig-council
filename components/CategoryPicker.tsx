@@ -4,17 +4,21 @@ import { Picker } from '@react-native-picker/picker';
 import { CATEGORIES } from '../types/types';
 
 type Props = {
+    initialCategory: string,
     inputHandler: (text: string) => void;
 };
 
-const CategoryPicker = ({ inputHandler }: Props) => {
-    const [selectedValue, setSelectedValue] = useState("Admin");
+const CategoryPicker = ({ initialCategory, inputHandler }: Props) => {
+    const initialCategoryItem = CATEGORIES.find(item => item.label === initialCategory);
+    const [selectedValue, setSelectedValue] = useState(initialCategoryItem ? initialCategoryItem.id : "catadmin");
+    //console.log("CategoryPicker: initialCategoryItem=", initialCategoryItem, "selectedValue=", selectedValue);
+    //TODO: The selectedValue is wrong after first use
 
     const onChange = (itemValue: string) => {
         const selectedItem = CATEGORIES.find(item => item.id === itemValue)
         if (selectedItem) {
             inputHandler(selectedItem.label)
-            setSelectedValue(selectedItem.label);
+            setSelectedValue(selectedItem.id);
         }
         //setShowPicker(Platform.OS === 'ios');
     };
@@ -34,7 +38,6 @@ const CategoryPicker = ({ inputHandler }: Props) => {
                     />
                 ))}
             </Picker>
-            <Text>Selected item is {selectedValue}</Text>
         </View>
     );
 };

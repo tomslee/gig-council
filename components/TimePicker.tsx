@@ -23,7 +23,8 @@ const TimePicker = ({ time, inputHandler }: Props) => {
     const onChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
         if (event.type === 'set' && selectedTime) {
             setDisplayTime(selectedTime);
-            inputHandler(formatTime(selectedTime))
+            console.log("TimePicker.onChange: selectedTime=", selectedTime.toISOString());
+            inputHandler(selectedTime.toISOString());
         }
         setShowPicker(Platform.OS === 'ios');
     };
@@ -47,14 +48,7 @@ const TimePicker = ({ time, inputHandler }: Props) => {
         <View>
             {Platform.OS === 'web' ? (
                 <TextInput
-                    style={{
-                        borderWidth: 1,
-                        borderColor: '#ccc',
-                        padding: 10,
-                        fontSize: 16,
-                        minWidth: 120,
-                        textAlign: 'center',
-                    }}
+                    style={styles.pickerButton}
                     value={formatTimeForWeb(time)}
                     onChangeText={onWebTimeChange}
                     placeholder="HH:MM"
@@ -66,7 +60,7 @@ const TimePicker = ({ time, inputHandler }: Props) => {
                         onPress={() => setShowPicker(true)} >
                         <Text
                             style={styles.pickerButtonText}>
-                            {formatTime(displayTime) || 'Select time...'}
+                            {formatTime(time) || 'Select time...'}
                         </Text>
                         <Text style={styles.pickerArrow}>🕐</Text>
                     </TouchableOpacity>
@@ -97,20 +91,21 @@ const styles = StyleSheet.create({
     pickerButton: {
         backgroundColor: '#ffffff',
         borderWidth: 1,
-        borderColor: '#e1e8ed',
+        borderColor: '#E0E0E0',
         borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 14,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginTop: 8,
         boxShadow: [{
-            color: '#000',
-            offsetX: 0,
-            offsetY: 1,
+            color: '#E0E0E0',
+            offsetX: 2,
+            offsetY: 4,
             blurRadius: 2,
         }],
-        elevation: 1,
+        elevation: 2,
     },
     pickerButtonText: {
         fontSize: 16,
