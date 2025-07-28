@@ -14,9 +14,10 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { Collection, Assignment } from '../../types/types';
-import { firestoreService } from '../../services/firestoreService';
-import { useUserContext } from '../../contexts/UserContext';
+import { Collection, Assignment } from '@/types/types';
+import { firestoreService } from '@/services/firestoreService';
+import { timelineUtils } from '@/lib/timelineUtils';
+import { useUserContext } from '@/contexts/UserContext';
 
 export default function AddAssignment() {
   const { userData, saveUserData, updateUserData, clearUserData, isLoading } = useUserContext();
@@ -50,7 +51,6 @@ export default function AddAssignment() {
             ...prevFormAssignment,
             [field]: valueDate,
           }));
-          console.log("handleInputChange for endTime 1. startTime=", formAssignment.startTime, "valueDate=", valueDate, "Date(value)=", new Date(value), "setting endTime value=", value);
         } catch (e) {
           console.log("handleInputChange endTime error:", e);
         };
@@ -141,6 +141,16 @@ export default function AddAssignment() {
     // Add the new assignment
     try {
       if (userData) {
+        console.log("In updateAssignment: formAssignment.endTime=", formAssignment.endTime);
+        if (formAssignment.endTime) {
+          const okTime = await timelineUtils.isValidEndTime(userData, formAssignment);
+          if (!okTime) {
+            alert("Sorry, that end time is either not after the start time, or it overlaps with some other assignment. Please try again.");
+            saveUserData(userData);
+            setLoading(false);
+            return;
+          }
+        };
         const activeAssignment: Assignment = {
           id: formAssignment.id,
           owner: userData.username,
