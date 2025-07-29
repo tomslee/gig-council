@@ -36,7 +36,6 @@ export default function AddAssignment() {
 
 
   const handleInputChange = (field: string, value: string) => {
-    console.log("AddAssignment.handleInputChange: field=", field, ", value=", value);
     if (value) {
       if (field == 'endTime') {
         try {
@@ -77,7 +76,6 @@ export default function AddAssignment() {
             startTime: activeAssignment?.startTime,
             endTime: activeAssignment?.endTime
           });
-          console.log("AddAssignment:useEffect: activeAssignment=", activeAssignment);
         };
       }
     };
@@ -137,27 +135,16 @@ export default function AddAssignment() {
   };
 
   const updateAssignment = async () => {
-    // Close any open assignments
-    // Add the new assignment
     try {
-      if (userData) {
-        console.log("In updateAssignment: formAssignment.endTime=", formAssignment.endTime);
-        if (formAssignment.endTime) {
-          const okTime = await timelineUtils.isValidEndTime(userData, formAssignment);
-          if (!okTime) {
-            alert("Sorry, that end time is either not after the start time, or it overlaps with some other assignment. Please try again.");
-            saveUserData(userData);
-            setLoading(false);
-            return;
-          }
-        };
+      if (userData && formAssignment.endTime) {
+        const checkedTime = await timelineUtils.getValidEndTime(userData, formAssignment);
         const activeAssignment: Assignment = {
           id: formAssignment.id,
           owner: userData.username,
           description: formAssignment.description,
           category: formAssignment.category,
           startTime: formAssignment.startTime,
-          endTime: formAssignment.endTime,
+          endTime: checkedTime,
         };
         await firestoreService.updateAssignment(Collection.assignment, activeAssignment);
       };
