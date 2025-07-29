@@ -84,14 +84,14 @@ export default function AddAssignment() {
   }, [isFocused, userData]);
 
   useFocusEffect(
+    // Memoize the logic with React.useCallback to avoid re-running the effect on every render.
     React.useCallback(() => {
       // If we're returning from programmatic navigation and have params, clear them
       if (isReturningFromNavigation.current && assignmentID) {
-        router.replace('/(tabs)/add_assignment'); // Clear the parameters
+        // We navigated to this page from an edit. 
         isReturningFromNavigation.current = false;
       }
-    }, [assignmentID])
-  );
+    }, [assignmentID]));
 
   const addAssignment = async () => {
     // Close any open assignments
@@ -169,10 +169,12 @@ export default function AddAssignment() {
     if (fromTimeline) {
       // must have come from the timeline
       isReturningFromNavigation.current = true;
-      router.navigate('/(tabs)/timeline');
+      // We navigated to this page from an edit. Clean the parameters before leaving.
+      // router.replace('/(tabs)/add_assignment');
+      router.replace('/(tabs)/timeline');
     } else {
       // go home
-      isReturningFromNavigation.current = true;
+      isReturningFromNavigation.current = false;
       router.replace('/');
     };
   };

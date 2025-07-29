@@ -8,17 +8,12 @@ import {
     Platform,
     SafeAreaView,
     FlatList,
-    ScrollView,
-    SectionList,
     TouchableOpacity,
 } from 'react-native';
 import { useIsFocused } from "@react-navigation/native";
 import { Assignment, Collection, CATEGORIES } from '../../types/types';
 import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
-import SectionHeader from '../../components/SectionHeader';
-import AssignmentItem from '../../components/AssignmentItem';
-import InfoIcon from '../../components/InfoIcon';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
@@ -33,7 +28,6 @@ export default function ReportScreen() {
         const minutes = totalMinutes % 60;
         return { hours, minutes };
     }
-
 
     class SessionInfo {
         minutes: number;
@@ -57,12 +51,6 @@ export default function ReportScreen() {
             return acc;
         }, {} as CategoryInfo);
     };
-
-    // Define the Section interface that SectionList expects
-    interface AssignmentSection {
-        title: string; // This is the category name ("Phone call", "Meeting", etc.)
-        data: Assignment[]; // Array of assignments in this category
-    }
 
     // Helper function to group assignments by category
     const groupAssignmentsByCategory = (assignments: Assignment[]): AssignmentSection[] => {
@@ -190,7 +178,7 @@ export default function ReportScreen() {
                                     };
                                 };
                             };
-                            console.log("Report includes", docList.length, "assignments.");
+                            console.log("Fetched", docList.length, "assignments.");
                             // Now group the assignments by category and add them in to the structure for presentation
                             assignments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
                             newReport.assignmentSections = groupAssignmentsByCategory(assignments);

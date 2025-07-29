@@ -8,7 +8,6 @@ import { Assignment, Collection, CATEGORIES } from '@/types/types';
 export const timelineUtils = {
 
     async getValidEndTime(userData: UserData, candidateAssignment: Assignment) {
-        console.log("In setValidEndTime");
         if (userData &&
             userData.username &&
             candidateAssignment.startTime &&
