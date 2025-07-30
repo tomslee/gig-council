@@ -305,6 +305,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     color: "#f8f9fa",
+    backgroundColor: '#f6f6f6',
   },
   keyboardAvoid: {
     flex: 1,

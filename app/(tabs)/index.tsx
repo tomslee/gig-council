@@ -233,14 +233,14 @@ export default function HomeScreen() {
           <View style={styles.formSection}>
             {(userData && userData.username && userData.sessionID) ? (
               <View style={styles.bannerSection}>
-                <Text style={styles.bannerText}>Thank you for taking part in the Gig Council Challenge, {userData.username}.</Text>
-                <Link style={[styles.bannerText, { color: "#66B2B2" }]} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
+                <Text style={styles.bannerText}>Thank you for taking part in the RideFair Gig Work Challenge, {userData.username}.</Text>
+                <Link style={[styles.bannerText, { textDecorationLine: 'underline' }]} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
                 </Link>
               </View>
             ) : null}
             {(userData && !userData.sessionID) ? (
               <View style={styles.bannerSection}>
-                <Text style={styles.bannerText}>Welcome to the Gig Council Challenge.</Text>
+                <Text style={styles.bannerText}>Welcome to the RideFair Gig Work Challenge.</Text>
                 <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
                 <Link style={[styles.bannerText, { color: "#66B2B2" }]} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
                 </Link>
@@ -354,6 +354,7 @@ const styles = StyleSheet.create({
   safeAreaContainer: {
     flex: 1,
     color: '#f8f9fa',
+    backgroundColor: '#f6f6f6',
   },
   keyboardAvoid: {
     flex: 1,
@@ -368,6 +369,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     paddingVertical: 8,
     borderBottomWidth: 1,
+    //borderBottomColor: '#fa8072',
     borderBottomColor: '#E0E0E0',
     justifyContent: 'center',
   },
@@ -408,14 +410,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     marginHorizontal: 8,
     elevation: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ffb0c2',
     borderRadius: 8, // Slightly rounded corners
   },
   bannerText: {
     fontSize: 20,
     textAlign: 'center',
     fontWeight: '600',
-    color: '#34495e',
+    color: '#333',
     marginBottom: 8,
     marginLeft: 2,
     padding: 8,

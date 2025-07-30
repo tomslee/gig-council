@@ -7,10 +7,14 @@ import {
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
+    SectionList,
     FlatList,
     TouchableOpacity,
+    SectionListComponent,
 } from 'react-native';
 import { useIsFocused } from "@react-navigation/native";
+import SectionHeader from '@/components/SectionHeader';
+import AssignmentItem from '@/components/AssignmentItem';
 import { Assignment, Collection, CATEGORIES } from '../../types/types';
 import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
@@ -53,6 +57,7 @@ export default function ReportScreen() {
     };
 
     // Helper function to group assignments by category
+    /*
     const groupAssignmentsByCategory = (assignments: Assignment[]): AssignmentSection[] => {
         const grouped = assignments.reduce((acc, assignment) => {
             const { category } = assignment;
@@ -70,6 +75,7 @@ export default function ReportScreen() {
             data
         }));
     };
+    */
 
     type DailyPayReport = {
         "date": string;
@@ -179,9 +185,9 @@ export default function ReportScreen() {
                                 };
                             };
                             console.log("Fetched", docList.length, "assignments.");
-                            // Now group the assignments by category and add them in to the structure for presentation
+                            // Now group the assignments by date and add them in to the structure for presentation
                             assignments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-                            newReport.assignmentSections = groupAssignmentsByCategory(assignments);
+                            newReport.assignmentSections = groupAssignmentsByDate(assignments);
                             newReport.assignments = assignments;
                             setPayReport(newReport);
                             setDocList(docList);
@@ -202,6 +208,27 @@ export default function ReportScreen() {
         constructReport();
     }, [isFocused]);
 
+    const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] => {
+        const grouped = assignments.reduce((acc, assignment) => {
+            if (assignment.startTime) {
+                const t = new Date(assignment.startTime.getTime());
+                const assignmentDate = new Date(t.setHours(0, 0, 0, 0)).toLocaleDateString(
+                    'en-CA', { weekday: 'short', day: 'numeric', month: 'short' });
+                if (assignmentDate) {
+                    if (!acc[assignmentDate]) {
+                        acc[assignmentDate] = [];
+                    }
+                    acc[assignmentDate].push(assignment);
+                };
+            };
+            return acc;
+        }, {} as Record<string, Assignment[]>);
+        return Object.entries(grouped).map(([title, data]) => ({
+            title,
+            data
+        }));
+    };
+
     const openAssignmentForEdit = (id: string) => {
         router.replace({
             pathname: '/(tabs)/add_assignment', // Navigate to the /add_assignment route
@@ -209,17 +236,18 @@ export default function ReportScreen() {
         })
     };
 
-    const Item = ({ id, category, description, startTime, endTime }: Assignment) => (
-        <View style={styles.reportItem}>
-            <Text style={styles.label}>{id}</Text>
-            <Text style={styles.label}>{category}</Text>
-            <Text style={styles.label}>{description}</Text>
-            <Text style={styles.label}>{startTime?.toLocaleDateString('en-CA',
-                { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}</Text>
-            <Text style={styles.label}>{endTime?.toLocaleDateString('en-CA',
-                { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}</Text>
-        </View>
+    const displayItem = ({ id, category, description, startTime, endTime }: Assignment) => (
+        <TouchableOpacity
+            style={styles.reportItem}
+            onPress={() => openAssignmentForEdit(id)}
+        >
+            <Text style={styles.text}>{category}: {description}</Text>
+            <Text style={styles.text}>{startTime?.toLocaleDateString('en-CA',
+                { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
+                to {endTime?.toLocaleTimeString('en-CA', { hour: 'numeric', minute: 'numeric' })}</Text>
+        </TouchableOpacity>
     );
+
     if (loading) {
         return (
             <View style={styles.reportContainer}>
@@ -266,36 +294,18 @@ export default function ReportScreen() {
                         ))}
                     </View>
                     */}
+
                     <View style={styles.reportSection}>
                         <Text style={styles.text}>If you see an incorrect assignment, press it to fix it.</Text>
-                        <FlatList
-                            style={styles.flatList}
-                            data={payReport.assignments}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.reportItem}
-                                    onPress={() => openAssignmentForEdit(item.id)}
-                                >
-                                    <Text style={styles.text}>{item.category}: {item.description}</Text>
-                                    <Text style={styles.text}>{item.startTime?.toLocaleDateString('en-CA',
-                                        { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
-                                        to {item.endTime?.toLocaleTimeString('en-CA',
-                                            { hour: 'numeric', minute: 'numeric' })}</Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                        {/*
                         <SectionList
                             style={styles.sectionList}
                             sections={payReport.assignmentSections}
                             keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => <AssignmentItem assignment={item} />}
+                            renderItem={({ item }) => displayItem(item)}
                             renderSectionHeader={({ section: { title } }) => (
                                 <SectionHeader title={title} />
                             )}
                         />
-                        */}
                     </View>
                 </View>
             </KeyboardAvoidingView>
@@ -307,6 +317,7 @@ const styles = StyleSheet.create({
     safeAreaContainer: {
         flex: 1,
         color: '#f8f9fa',
+        backgroundColor: '#f6f6f6',
     },
     keyboardAvoid: {
         flex: 1,
@@ -321,21 +332,20 @@ const styles = StyleSheet.create({
         borderBottomColor: '#eee',
         borderRadius: 4,
     },
-    reportContainerContent: {
-    },
     reportSection: {
         marginTop: 8,
         marginBottom: 8,
         paddingBottom: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#E0E0E0',
+        backgroundColor: '#f6f6f6',
     },
     reportItem: {
         paddingVertical: 8,
         paddingHorizontal: 16,
         marginHorizontal: 8,
         marginVertical: 8,
-        backgroundColor: '#FFFFFF', // White background
+        backgroundColor: '#ffffff',
         borderRadius: 8, // Slightly rounded corners
         borderWidth: 1,
         borderColor: '#E0E0E0', // Light gray border
@@ -346,26 +356,6 @@ const styles = StyleSheet.create({
         }],
         elevation: 2
     },
-    /*
-    reportItem: {
-        flexDirection: 'column', // Arranges children horizontally
-        justifyContent: 'space-evenly', // This evenly distributes the form elements
-        paddingHorizontal: 10, // Adds some padding for better visual appearance
-        paddingVertical: 16,
-        margin: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        borderRadius: 8,
-        backgroundColor: '#fbfafb',
-        boxShadow: [{
-            color: '#E0E0E0',
-            offsetX: 2,
-            offsetY: 4,
-            blurRadius: 2,
-        }],
-        elevation: 4,
-    },
-    */
     text: {
     },
     reportItemText: {
@@ -381,7 +371,7 @@ const styles = StyleSheet.create({
         marginVertical: 0,
         borderBottomWidth: 6,
         borderBottomColor: '#E0E0E0',
-        backgroundColor: '#f9f8fa',
+        backgroundColor: '#f6f6f6',
         elevation: 0,
     },
     sectionList: {

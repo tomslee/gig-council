@@ -15,6 +15,7 @@ import { Assignment, Collection, CATEGORIES } from '../../types/types';
 import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
 import InfoIcon from '../../components/InfoIcon';
+import { parseQueryParams } from 'expo-router/build/fork/getStateFromPath-forks';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
@@ -146,11 +147,11 @@ export default function ReportScreen() {
                             for (const session of sessions) {
                                 if (session.startTime && isDateToday(session.startTime)) {
                                     if (session.endTime == null) {
-                                        const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60000.0) || 0;
+                                        const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
                                         todayReport.sessionInfo["minutes"] += sessionMinutes;
                                         todayReport.sessionInfo["sessions"] += 1;
                                     } else {
-                                        const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60000.0) || 0;
+                                        const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
                                         todayReport.sessionInfo["minutes"] += sessionMinutes;
                                         todayReport.sessionInfo["sessions"] += 1;
                                     };
@@ -165,8 +166,7 @@ export default function ReportScreen() {
                             for (const assignment of assignments) {
                                 if (assignment.category == '' ||
                                     assignment.startTime == null ||
-                                    !isDateToday(assignment.startTime) ||
-                                    assignment.endTime == null) {
+                                    !isDateToday(assignment.startTime)) {
                                     continue;
                                 };
                                 const assignmentCategory = assignment.category;
@@ -179,7 +179,9 @@ export default function ReportScreen() {
                                         description: docDescription
                                     });
                                 };
-                                const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
+                                const assignmentMinutes = (assignment.endTime ?
+                                    (Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60 * 1000.0)) :
+                                    (Math.abs(new Date().getTime() - assignment.startTime.getTime()) / (60 * 1000.0)));
                                 if (assignmentMinutes > 0 && assignmentCategory && assignmentCategory !== "") {
                                     todayReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
                                     todayReport.categoryInfo[assignmentCategory].assignments += 1;
@@ -265,19 +267,29 @@ export default function ReportScreen() {
                                 Congratulations {userData.username}!
                             </Text>
                             <Text style={styles.paragraph}>
-                                Today you have spent <Text style={{ fontWeight: 'bold' }}>{payReport.paidMinutes.toFixed()} minutes</Text> engaged in paid assignments.
+                                So far today you have spent
+                                <Text style={{ fontWeight: 'bold' }}> {payReport.paidMinutes.toFixed()} minutes</Text> engaged in paid assignments.
                                 Thanks to the Ontario Digital Platform Workers' Rights Act, you are guaranteed a minimum
-                                wage of $17.20 / hour for those minutes, for a total of <Text style={{ fontWeight: 'bold' }}>${(17.20 * payReport.paidMinutes / 60).toFixed(2)}!</Text>.
+                                wage of $17.20 / hour for those minutes, for a total of
+                                <Text style={{ fontWeight: 'bold' }}> ${(17.20 * payReport.paidMinutes / 60).toFixed(2)}!</Text>
                             </Text>
+                            {(payReport.totalAssignmentMinutes > payReport.paidMinutes) &&
+                                <Text style={styles.paragraph}>
+                                    So far today you have also spent a total of
+                                    <Text style={{ fontWeight: 'bold' }}> {(payReport.totalAssignmentMinutes - payReport.paidMinutes).toFixed()}&nbsp;minutes</Text>
+                                    on unpaid assignments, like office work and administrative tasks.
+                                    Even though you won't get paid for that time, we love that you're investing in your future, ensuring that you present
+                                    your best self to your constituents and to the City of Toronto.
+                                </Text>}
                             <Text style={styles.paragraph}>
-                                Thanks also for spending a total of <Text style={{ fontWeight: 'bold' }}>{(payReport.totalAssignmentMinutes - payReport.paidMinutes).toFixed()}&nbsp;minutes</Text> on unpaid assignments, like office work
-                                and administrative tasks. Even though you won't get paid for that time,
-                                we love that you're investing in your future, ensuring that you present your best self to your constituents and to the City of Toronto.
-                            </Text>
-                            <Text style={styles.paragraph}>
-                                And let's not forget, thanks also for spending a total of <Text style={{ fontWeight: 'bold' }}>{payReport.sessionInfo.minutes.toFixed()} minutes</Text> signed on and
+                                So far today you have spent a total of <Text style={{ fontWeight: 'bold' }}>{payReport.sessionInfo.minutes.toFixed()} minutes</Text> signed on and
                                 available for work. Even though you won't get paid for much of that time, it is great to know you were available for your
-                                constituents and coworkers in case anyone needed you.
+                                constituents and coworkers in case anyone needed you. Your earnings were
+                                <Text style={{ fontWeight: 'bold' }} > ${(17.20 * payReport.paidMinutes / payReport.sessionInfo.minutes).toFixed(2)} per hour online!</Text>
+                            </Text>
+                            <Text style={styles.paragraph}>
+                                And of course you know that that's before your expenses of office rental, IT resources, phone, supply and maintenance of your equipment,
+                                clothes to show your professionalism and more. But surely that's a minor price to pay for the flexibility you now have as a gig worker.
                             </Text>
                             <Text style={styles.paragraph}>Let's make tomorrow an even better day!</Text>
                         </View>
@@ -292,6 +304,7 @@ const styles = StyleSheet.create({
     safeAreaContainer: {
         flex: 1,
         color: '#f8f9fa',
+        backgroundColor: '#f6f6f6',
     },
     keyboardAvoid: {
         flex: 1,
@@ -300,11 +313,9 @@ const styles = StyleSheet.create({
         flex: 1,
         marginHorizontal: 8,
         paddingHorizontal: 24,
-        paddingTop: 2,
-        paddingBottom: 4,
+        paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
-        borderRadius: 4,
         backgroundColor: 'white',
     },
     reportContainerContent: {
@@ -360,7 +371,6 @@ const styles = StyleSheet.create({
         color: '#34495e',
         marginBottom: 8,
         marginLeft: 2,
-        alignSelf: 'center',
     },
     label: {
         fontSize: 18,
