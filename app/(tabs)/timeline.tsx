@@ -277,24 +277,8 @@ export default function ReportScreen() {
         <SafeAreaView style={styles.safeAreaContainer}>
             <KeyboardAvoidingView
                 style={styles.keyboardAvoid}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            >
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'} >
                 <View style={styles.reportContainer}>
-
-                    {/* Categories */}
-                    {/*
-                    <View style={styles.reportSection}>
-                        <Text style={styles.label}>Time spent on each category (minutes)</Text>
-                        {Object.entries(payReport.categoryInfo).map(([key, value]) => (
-                            <View key={key} style={styles.reportItem}>
-                                <Text style={{ fontWeight: "bold" }}>{key}: </Text>
-                                <Text >{value.minutes.toFixed()} mins.</Text>
-                                <Text >{value.assignmentCount.toFixed()} assignments.</Text>
-                            </View>
-                        ))}
-                    </View>
-                    */}
-
                     <View style={styles.reportSection}>
                         <Text style={styles.text}>If you see an incorrect assignment, press it to fix it.</Text>
                         <SectionList
@@ -335,7 +319,7 @@ const styles = StyleSheet.create({
     reportSection: {
         marginTop: 8,
         marginBottom: 8,
-        paddingBottom: 12,
+        paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#E0E0E0',
         backgroundColor: '#f6f6f6',
@@ -376,11 +360,12 @@ const styles = StyleSheet.create({
     },
     sectionList: {
         // width: '100%', // Ensures the container takes full width
-        marginVertical: 0,
         borderBottomWidth: 6,
-        borderBottomColor: '#E0E0E0',
+        borderBottomColor: '#66b2b2',
         backgroundColor: '#f9f8fa',
         elevation: 0,
+        paddingVertical: 8,
+        marginVertical: 8,
     },
     selectedListItem: {
         backgroundColor: '#dfffdf',
