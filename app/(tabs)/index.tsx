@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Link } from 'expo-router';
 import { useIsFocused } from "@react-navigation/native";
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { UserData, useUserContext } from '../../contexts/UserContext';
 import {
   Button,
@@ -234,7 +235,7 @@ export default function HomeScreen() {
             {(userData && userData.username && userData.sessionID) ? (
               <View style={styles.bannerSection}>
                 <Text style={styles.bannerText}>Thank you for taking part in the RideFair Gig Work Challenge, {userData.username}.</Text>
-                <Link style={[styles.bannerText, { textDecorationLine: 'underline' }]} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
+                <Link style={styles.bannerText} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
                 </Link>
               </View>
             ) : null}
@@ -242,7 +243,7 @@ export default function HomeScreen() {
               <View style={styles.bannerSection}>
                 <Text style={styles.bannerText}>Welcome to the RideFair Gig Work Challenge.</Text>
                 <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
-                <Link style={[styles.bannerText, { textDecorationLine: "underline" }]} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
+                <Link style={styles.bannerText} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
                 </Link>
               </View>
             ) : null}
@@ -354,7 +355,6 @@ const styles = StyleSheet.create({
   safeAreaContainer: {
     flex: 1,
     color: '#f8f9fa',
-    backgroundColor: '#f6f6f6',
   },
   keyboardAvoid: {
     flex: 1,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    justifyContent: 'space-evenly', // This evenly distributes the form elements
+    // justifyContent: 'space-evenly', // This evenly distributes the form elements
   },
   formSection: {
     flex: 1,
@@ -409,8 +409,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     marginHorizontal: 8,
     elevation: 1,
-    backgroundColor: '#ffb0c2',
+    backgroundColor: '#c2e8e8',
     borderRadius: 8, // Slightly rounded corners
+    borderWidth: 2,
+    borderColor: '#66B2B2',
   },
   bannerText: {
     fontSize: 20,
@@ -435,7 +437,7 @@ const styles = StyleSheet.create({
       offsetY: 4,
       blurRadius: 2,
     }],
-    elevation: 4,
+    elevation: 5,
   },
   saveButtonText: {
     color: '#ffffff',
@@ -463,12 +465,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF', // White background
     borderRadius: 8, // Slightly rounded corners
     borderWidth: 1,
-    borderColor: '#E0E0E0', // Light gray border
+    borderColor: '#c0c0c0',
     boxShadow: [{
-      offsetX: 2,
+      offsetX: 4,
       offsetY: 4,
       color: '#E0E0E0',
     }],
-    elevation: 2
+    elevation: 4
   }
 });

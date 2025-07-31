@@ -28,3 +28,31 @@ export interface Session {
     startTime: Date | null;
     endTime: Date | null;
 };
+
+export interface PayReport {
+    "totalSessions": number;
+    "totalAssignmentMinutes": number;
+    "totalAssignments": number;
+    "sessionInfo": SessionInfo;
+    "paidMinutes": number;
+    "paidAssignments": number;
+    "categoryInfo": CategoryInfo;
+    "categorySections": {};
+    "assignmentsByDate": {};
+};
+
+class SessionInfo {
+    minutes: number;
+    sessions: number;
+    constructor(data: { minutes: number; sessions: number }) {
+        this.minutes = data.minutes;
+        this.sessions = data.sessions;
+    }
+};
+
+export type CategoryInfo = {
+    [key: string]: {
+        minutes: number;
+        assignmentCount: number;
+    };
+};

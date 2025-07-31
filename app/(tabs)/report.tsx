@@ -11,11 +11,11 @@ import {
     SectionList,
 } from 'react-native';
 import { useIsFocused } from "@react-navigation/native";
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { Assignment, Collection, CATEGORIES } from '../../types/types';
 import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
 import InfoIcon from '../../components/InfoIcon';
-import { parseQueryParams } from 'expo-router/build/fork/getStateFromPath-forks';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
@@ -42,13 +42,13 @@ export default function ReportScreen() {
     type CategoryInfo = {
         [key: string]: {
             minutes: number;
-            assignments: number;
+            assignmentCount: number;
         };
     };
 
     const createEmptyCategoryInfo = (): CategoryInfo => {
         return CATEGORIES.reduce((acc, category) => {
-            acc[category.label] = { minutes: 0, assignments: 0 };
+            acc[category.label] = { minutes: 0, assignmentCount: 0 };
             return acc;
         }, {} as CategoryInfo);
     };
@@ -59,29 +59,28 @@ export default function ReportScreen() {
         data: Assignment[]; // Array of assignments in this category
     }
 
-    // Helper function to group assignments by category
-    const groupAssignmentsByCategory = (
-        assignments: Assignment[]
-    ): AssignmentSection[] => {
+    const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] => {
         const grouped = assignments.reduce((acc, assignment) => {
-            const { category } = assignment;
-
-            if (!acc[category]) {
-                acc[category] = [];
-            }
-            acc[category].push(assignment);
-
+            if (assignment.startTime) {
+                const t = new Date(assignment.startTime.getTime());
+                const assignmentDate = new Date(t.setHours(0, 0, 0, 0)).toLocaleDateString(
+                    'en-CA', { weekday: 'short', day: 'numeric', month: 'short' });
+                if (assignmentDate) {
+                    if (!acc[assignmentDate]) {
+                        acc[assignmentDate] = [];
+                    }
+                    acc[assignmentDate].push(assignment);
+                };
+            };
             return acc;
         }, {} as Record<string, Assignment[]>);
-
         return Object.entries(grouped).map(([title, data]) => ({
             title,
             data
         }));
     };
 
-    type DailyPayReport = {
-        "date": Date;
+    type PayReport = {
         "totalSessions": number;
         "totalAssignmentMinutes": number;
         "totalAssignments": number;
@@ -89,7 +88,8 @@ export default function ReportScreen() {
         "paidMinutes": number;
         "paidAssignments": number;
         "categoryInfo": CategoryInfo;
-        "assignmentSections": {};
+        "categorySections": {};
+        "assignmentsByDate": {};
     };
 
     function isDateToday(someDate: Date): boolean {
@@ -104,8 +104,7 @@ export default function ReportScreen() {
     }
 
     // Initialize with proper default values
-    const [payReport, setPayReport] = useState<DailyPayReport>({
-        date: new Date(),
+    const [payReport, setPayReport] = useState<PayReport>({
         totalSessions: 0,
         totalAssignmentMinutes: 0,
         totalAssignments: 0,
@@ -113,7 +112,8 @@ export default function ReportScreen() {
         paidMinutes: 0,
         paidAssignments: 0,
         categoryInfo: createEmptyCategoryInfo(),
-        assignmentSections: {},
+        categorySections: {},
+        assignmentsByDate: {},
     });
 
     useEffect(() => {
@@ -122,9 +122,8 @@ export default function ReportScreen() {
             try {
                 if (isFocused && userData) {
                     setDocList([{}]);
-                    // Create new report object instead of mutating state directly
-                    let todayReport: DailyPayReport = {
-                        date: new Date(),
+                    // Create and initialize new report object instead of mutating state directly
+                    let newReport: PayReport = {
                         totalSessions: 0,
                         totalAssignmentMinutes: 0,
                         totalAssignments: 0,
@@ -132,14 +131,14 @@ export default function ReportScreen() {
                         paidMinutes: 0,
                         paidAssignments: 0,
                         categoryInfo: createEmptyCategoryInfo(),
-                        assignmentSections: {},
+                        assignmentsByDate: {},
                     };
                     for (const category of CATEGORIES) {
-                        todayReport.categoryInfo[category.label].minutes = 0;
-                        todayReport.categoryInfo[category.label].assignments = 0;
+                        newReport.categoryInfo[category.label].minutes = 0;
+                        newReport.categoryInfo[category.label].assignmentCount = 0;
                     };
+                    // fetch session information
                     try {
-                        // Handle sessions
                         const sessions = await firestoreService.getAllSessionsByOwner(
                             Collection.session,
                             userData.username);
@@ -148,17 +147,16 @@ export default function ReportScreen() {
                                 if (session.startTime && isDateToday(session.startTime)) {
                                     if (session.endTime == null) {
                                         const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
-                                        todayReport.sessionInfo["minutes"] += sessionMinutes;
-                                        todayReport.sessionInfo["sessions"] += 1;
+                                        newReport.sessionInfo["minutes"] += sessionMinutes;
+                                        newReport.sessionInfo["sessions"] += 1;
                                     } else {
                                         const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
-                                        todayReport.sessionInfo["minutes"] += sessionMinutes;
-                                        todayReport.sessionInfo["sessions"] += 1;
+                                        newReport.sessionInfo["minutes"] += sessionMinutes;
+                                        newReport.sessionInfo["sessions"] += 1;
                                     };
                                 };
                             };
                         };
-                        // Handle assignments
                         const assignments = await firestoreService.getAllAssignmentsByOwner(
                             Collection.assignment,
                             userData.username);
@@ -166,7 +164,8 @@ export default function ReportScreen() {
                             for (const assignment of assignments) {
                                 if (assignment.category == '' ||
                                     assignment.startTime == null ||
-                                    !isDateToday(assignment.startTime)) {
+                                    !isDateToday(assignment.startTime) ||
+                                    assignment.endTime == null) {
                                     continue;
                                 };
                                 const assignmentCategory = assignment.category;
@@ -179,28 +178,28 @@ export default function ReportScreen() {
                                         description: docDescription
                                     });
                                 };
-                                const assignmentMinutes = (assignment.endTime ?
-                                    (Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60 * 1000.0)) :
-                                    (Math.abs(new Date().getTime() - assignment.startTime.getTime()) / (60 * 1000.0)));
+                                const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
                                 if (assignmentMinutes > 0 && assignmentCategory && assignmentCategory !== "") {
-                                    todayReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
-                                    todayReport.categoryInfo[assignmentCategory].assignments += 1;
+                                    newReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
+                                    newReport.categoryInfo[assignmentCategory].assignmentCount += 1;
                                 };
                                 const thisCategory = CATEGORIES.find(item => item["label"] === assignmentCategory) || {};
                                 if ("label" in thisCategory && "payable" in thisCategory) {
                                     if (assignmentMinutes > 0) {
-                                        todayReport.totalAssignmentMinutes += assignmentMinutes;
-                                        todayReport.totalAssignments += 1;
+                                        newReport.totalAssignmentMinutes += assignmentMinutes;
+                                        newReport.totalAssignments += 1;
                                         if (thisCategory["payable"]) {
-                                            todayReport["paidMinutes"] += assignmentMinutes;
-                                            todayReport["paidAssignments"] += 1;
+                                            newReport["paidMinutes"] += assignmentMinutes;
+                                            newReport["paidAssignments"] += 1;
                                         }
                                     };
                                 };
                             };
-                            // Now group the assignments by category and add them in to the structure for presentation
-                            todayReport.assignmentSections = groupAssignmentsByCategory(assignments);
-                            setPayReport(todayReport);
+                            console.log("Fetched", docList.length, "assignments.");
+                            // Now group the assignments by date and add them in to the structure for presentation
+                            assignments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+                            newReport.assignmentsByDate = groupAssignmentsByDate(assignments);
+                            setPayReport(newReport);
                             setDocList(docList);
                             setRefresh(!refresh);
                         }; // if (assignments)
@@ -267,7 +266,7 @@ export default function ReportScreen() {
                                 Congratulations {userData.username}!
                             </Text>
                             <Text style={styles.paragraph}>
-                                So far today you have spent
+                                So far today, you have spent
                                 <Text style={{ fontWeight: 'bold' }}> {payReport.paidMinutes.toFixed()} minutes</Text> engaged in paid assignments.
                                 Thanks to the Ontario Digital Platform Workers' Rights Act, you are guaranteed a minimum
                                 wage of $17.20 / hour for those minutes, for a total of
@@ -276,7 +275,7 @@ export default function ReportScreen() {
                             {(payReport.totalAssignmentMinutes > payReport.paidMinutes) &&
                                 <Text style={styles.paragraph}>
                                     So far today you have also spent a total of
-                                    <Text style={{ fontWeight: 'bold' }}> {(payReport.totalAssignmentMinutes - payReport.paidMinutes).toFixed()}&nbsp;minutes</Text>
+                                    <Text style={{ fontWeight: 'bold' }}> {(payReport.totalAssignmentMinutes - payReport.paidMinutes).toFixed()}&nbsp;minutes </Text>
                                     on unpaid assignments, like office work and administrative tasks.
                                     Even though you won't get paid for that time, we love that you're investing in your future, ensuring that you present
                                     your best self to your constituents and to the City of Toronto.

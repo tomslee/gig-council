@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { UserData, useUserContext } from '@/contexts/UserContext';
 import { firestoreService } from '@/services/firestoreService';
 import { Assignment, Collection, CATEGORIES, CategoryInfo, PayReport } from '@/types/types';
-const [docList, setDocList] = useState<any>([]);
+//const [docList, setDocList] = useState<any>([]);
 
 class SessionInfo {
     minutes: number;
@@ -54,6 +54,7 @@ const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] 
 export const timelineUtils = {
 
     async getReport(userData: UserData) {
+        let docList = [];
         let newReport: PayReport = {
             totalSessions: 0,
             totalAssignmentMinutes: 0,
@@ -69,7 +70,7 @@ export const timelineUtils = {
             newReport.categoryInfo[category.label].minutes = 0;
             newReport.categoryInfo[category.label].assignmentCount = 0;
         };
-        // fetch session information
+        // fetch sessions
         try {
             const sessions = await firestoreService.getAllSessionsByOwner(
                 Collection.session,
@@ -89,6 +90,7 @@ export const timelineUtils = {
                     };
                 };
             };
+            // fetch assignments
             const assignments = await firestoreService.getAllAssignmentsByOwner(
                 Collection.assignment,
                 userData.username);
@@ -129,9 +131,6 @@ export const timelineUtils = {
                 assignments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
                 newReport.assignmentsByDate = groupAssignmentsByDate(assignments);
                 return newReport;
-                // setPayReport(newReport);
-                // setDocList(docList);
-                // setRefresh(!refresh);
             }
         } catch (err) {
             console.error(err);

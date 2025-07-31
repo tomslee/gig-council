@@ -2,13 +2,13 @@ import { Tabs } from 'expo-router';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-
 export default function TabLayout() {
     return (
         <Tabs
             screenOptions={{
                 tabBarActiveTintColor: '#66B2B2',
                 headerStyle: { backgroundColor: 'white' },
+                headerTitleAlign: 'center',
                 headerShadowVisible: true,
                 headerTintColor: '#66B2B2', // '#b2d8d8',
                 tabBarStyle: {},
