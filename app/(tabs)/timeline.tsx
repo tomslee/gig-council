@@ -77,8 +77,7 @@ export default function ReportScreen() {
     };
     */
 
-    type DailyPayReport = {
-        "date": string;
+    type PayReport = {
         "totalSessions": number;
         "totalAssignmentMinutes": number;
         "totalAssignments": number;
@@ -87,13 +86,11 @@ export default function ReportScreen() {
         "paidAssignments": number;
         "categoryInfo": CategoryInfo;
         "categorySections": {};
-        "assignmentSections": {};
-        "assignments": Assignment[];
+        "assignmentsByDate": {};
     };
 
     // Initialize with proper default values
-    const [payReport, setPayReport] = useState<DailyPayReport>({
-        date: new Date().toDateString(),
+    const [payReport, setPayReport] = useState<PayReport>({
         totalSessions: 0,
         totalAssignmentMinutes: 0,
         totalAssignments: 0,
@@ -102,8 +99,7 @@ export default function ReportScreen() {
         paidAssignments: 0,
         categoryInfo: createEmptyCategoryInfo(),
         categorySections: {},
-        assignmentSections: {},
-        assignments: [],
+        assignmentsByDate: {},
     });
 
     useEffect(() => {
@@ -112,9 +108,8 @@ export default function ReportScreen() {
             try {
                 if (isFocused && userData) {
                     setDocList([{}]);
-                    // Create new report object instead of mutating state directly
-                    let newReport: DailyPayReport = {
-                        date: new Date().toDateString(),
+                    // Create and initialize new report object instead of mutating state directly
+                    let newReport: PayReport = {
                         totalSessions: 0,
                         totalAssignmentMinutes: 0,
                         totalAssignments: 0,
@@ -123,13 +118,13 @@ export default function ReportScreen() {
                         paidAssignments: 0,
                         categoryInfo: createEmptyCategoryInfo(),
                         categorySections: {},
-                        assignmentSections: {},
-                        assignments: [],
+                        assignmentsByDate: {},
                     };
                     for (const category of CATEGORIES) {
                         newReport.categoryInfo[category.label].minutes = 0;
                         newReport.categoryInfo[category.label].assignmentCount = 0;
                     };
+                    // fetch session information
                     try {
                         const sessions = await firestoreService.getAllSessionsByOwner(
                             Collection.session,
@@ -187,8 +182,7 @@ export default function ReportScreen() {
                             console.log("Fetched", docList.length, "assignments.");
                             // Now group the assignments by date and add them in to the structure for presentation
                             assignments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-                            newReport.assignmentSections = groupAssignmentsByDate(assignments);
-                            newReport.assignments = assignments;
+                            newReport.assignmentsByDate = groupAssignmentsByDate(assignments);
                             setPayReport(newReport);
                             setDocList(docList);
                             setRefresh(!refresh);
@@ -283,7 +277,7 @@ export default function ReportScreen() {
                         <Text style={styles.text}>If you see an incorrect assignment, press it to fix it.</Text>
                         <SectionList
                             style={styles.sectionList}
-                            sections={payReport.assignmentSections}
+                            sections={payReport.assignmentsByDate}
                             keyExtractor={(item) => item.id}
                             renderItem={({ item }) => displayItem(item)}
                             renderSectionHeader={({ section: { title } }) => (
