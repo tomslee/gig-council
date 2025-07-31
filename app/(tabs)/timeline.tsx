@@ -236,9 +236,17 @@ export default function ReportScreen() {
             onPress={() => openAssignmentForEdit(id)}
         >
             <Text style={styles.text}>{category}: {description}</Text>
-            <Text style={styles.text}>{startTime?.toLocaleDateString('en-CA',
-                { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
-                to {endTime?.toLocaleTimeString('en-CA', { hour: 'numeric', minute: 'numeric' })}</Text>
+            {endTime ?
+                (
+                    <Text style={styles.text}>{startTime?.toLocaleDateString('en-CA',
+                        { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
+                        to {endTime?.toLocaleTimeString('en-CA', { hour: 'numeric', minute: 'numeric' })}</Text>
+                )
+                : (
+                    <Text style={styles.text}>In progress, started at {startTime?.toLocaleDateString('en-CA',
+                        { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}</Text>
+
+                )}
         </TouchableOpacity>
     );
 
