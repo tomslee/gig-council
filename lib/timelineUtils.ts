@@ -53,7 +53,7 @@ const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] 
 
 export const timelineUtils = {
 
-    async getReport(userData: UserData) {
+    async getReport(userData: UserData, earliestDate: Date = new Date('1970-01-01')) {
         let docList = [];
         let newReport: PayReport = {
             totalSessions: 0,
@@ -77,7 +77,7 @@ export const timelineUtils = {
                 userData.username);
             if (sessions) {
                 for (const session of sessions) {
-                    if (session.startTime) {
+                    if (session.startTime && session.startTime >= earliestDate) {
                         if (session.endTime == null) {
                             const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60000.0) || 0;
                             newReport.sessionInfo["minutes"] += sessionMinutes;
@@ -96,7 +96,10 @@ export const timelineUtils = {
                 userData.username);
             if (assignments) {
                 for (const assignment of assignments) {
-                    if (assignment.category == '' || assignment.startTime == null || assignment.endTime == null) {
+                    if (assignment.category == '' ||
+                        assignment.startTime == null ||
+                        assignment.startTime < earliestDate ||
+                        assignment.endTime == null) {
                         continue;
                     };
                     const assignmentCategory = assignment.category;
@@ -126,7 +129,7 @@ export const timelineUtils = {
                         };
                     };
                 };
-                console.log("Fetched", docList.length, "assignments.");
+                console.log("getReport: fetched", docList.length, "assignments.");
                 // Now group the assignments by date and add them in to the structure for presentation
                 assignments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
                 newReport.assignmentsByDate = groupAssignmentsByDate(assignments);

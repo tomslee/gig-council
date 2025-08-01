@@ -153,7 +153,7 @@ export default function ReportScreen() {
             style={styles.reportItem}
             onPress={() => openAssignmentForEdit(id)}
         >
-            <Text style={styles.text}>{category}: {description}</Text>
+            <Text style={styles.text}>{category}: {description} </Text>
             {endTime ?
                 (
                     <Text style={styles.text}>{startTime?.toLocaleDateString('en-CA',

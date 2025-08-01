@@ -15,6 +15,7 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 import { Assignment, Collection, CATEGORIES } from '../../types/types';
 import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
+import { timelineUtils } from '@/lib/timelineUtils';
 import InfoIcon from '../../components/InfoIcon';
 
 export default function ReportScreen() {
@@ -92,6 +93,8 @@ export default function ReportScreen() {
         "assignmentsByDate": {};
     };
 
+    const midnightLastNight = new Date(new Date().setHours(0, 0, 0, 0));
+
     function isDateToday(someDate: Date): boolean {
         const today = new Date(); // Creates a Date object for the current moment
 
@@ -119,100 +122,18 @@ export default function ReportScreen() {
     useEffect(() => {
         // fetch the assignments for this user and construct the report
         const constructReport = async () => {
-            try {
-                if (isFocused && userData) {
-                    setDocList([{}]);
-                    // Create and initialize new report object instead of mutating state directly
-                    let newReport: PayReport = {
-                        totalSessions: 0,
-                        totalAssignmentMinutes: 0,
-                        totalAssignments: 0,
-                        sessionInfo: { minutes: 0, sessions: 0 },
-                        paidMinutes: 0,
-                        paidAssignments: 0,
-                        categoryInfo: createEmptyCategoryInfo(),
-                        assignmentsByDate: {},
-                    };
-                    for (const category of CATEGORIES) {
-                        newReport.categoryInfo[category.label].minutes = 0;
-                        newReport.categoryInfo[category.label].assignmentCount = 0;
-                    };
-                    // fetch session information
-                    try {
-                        const sessions = await firestoreService.getAllSessionsByOwner(
-                            Collection.session,
-                            userData.username);
-                        if (sessions) {
-                            for (const session of sessions) {
-                                if (session.startTime && isDateToday(session.startTime)) {
-                                    if (session.endTime == null) {
-                                        const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
-                                        newReport.sessionInfo["minutes"] += sessionMinutes;
-                                        newReport.sessionInfo["sessions"] += 1;
-                                    } else {
-                                        const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
-                                        newReport.sessionInfo["minutes"] += sessionMinutes;
-                                        newReport.sessionInfo["sessions"] += 1;
-                                    };
-                                };
-                            };
-                        };
-                        const assignments = await firestoreService.getAllAssignmentsByOwner(
-                            Collection.assignment,
-                            userData.username);
-                        if (assignments) {
-                            for (const assignment of assignments) {
-                                if (assignment.category == '' ||
-                                    assignment.startTime == null ||
-                                    !isDateToday(assignment.startTime) ||
-                                    assignment.endTime == null) {
-                                    continue;
-                                };
-                                const assignmentCategory = assignment.category;
-                                const docDescription = assignment.description;
-                                // doc.data() is never undefined for query doc snapshots
-                                if (docList.findIndex(obj => obj.id === assignment.id) === -1) {
-                                    docList.push({
-                                        id: assignment.id,
-                                        category: assignmentCategory,
-                                        description: docDescription
-                                    });
-                                };
-                                const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60000.0) || 0;
-                                if (assignmentMinutes > 0 && assignmentCategory && assignmentCategory !== "") {
-                                    newReport.categoryInfo[assignmentCategory].minutes += assignmentMinutes;
-                                    newReport.categoryInfo[assignmentCategory].assignmentCount += 1;
-                                };
-                                const thisCategory = CATEGORIES.find(item => item["label"] === assignmentCategory) || {};
-                                if ("label" in thisCategory && "payable" in thisCategory) {
-                                    if (assignmentMinutes > 0) {
-                                        newReport.totalAssignmentMinutes += assignmentMinutes;
-                                        newReport.totalAssignments += 1;
-                                        if (thisCategory["payable"]) {
-                                            newReport["paidMinutes"] += assignmentMinutes;
-                                            newReport["paidAssignments"] += 1;
-                                        }
-                                    };
-                                };
-                            };
-                            console.log("Fetched", docList.length, "assignments.");
-                            // Now group the assignments by date and add them in to the structure for presentation
-                            assignments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-                            newReport.assignmentsByDate = groupAssignmentsByDate(assignments);
-                            setPayReport(newReport);
-                            setDocList(docList);
-                            setRefresh(!refresh);
-                        }; // if (assignments)
-                    } catch (err) {
-                        console.error(err);
-                    } finally {
-                        setLoading(false);
-                    };
+            if (isFocused && userData) {
+                try {
+                    const newReport = await timelineUtils.getReport(userData, midnightLastNight);
+                    if (newReport) {
+                        setPayReport(newReport);
+                        setRefresh(!refresh);
+                    }
+                } catch (e) {
+                    console.log("Error in constructReport", e);
+                } finally {
+                    setLoading(false);
                 };
-            } catch (e) {
-                console.log("Error in constructReport", e);
-            } finally {
-                setLoading(false);
             };
         };
         constructReport();
