@@ -7,7 +7,7 @@ export default function AboutScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.bannerSection}>
-                <Text style={styles.bannerText}>The Gig Council Challenge is a project of RideFair, a Toronto campaign to
+                <Text style={styles.text}>The Gig Council Challenge is a project of RideFair, a Toronto campaign to
                     address the impact of ride-hailing apps on workers, existing transportation
                     systems, climate change, public health and the public realm.
                 </Text>
@@ -33,17 +33,29 @@ const styles = StyleSheet.create({
         backgroundColor: '#F8F9FA',
     },
     bannerSection: {
-        paddingVertical: 20,
-        marginVertical: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+        marginHorizontal: 8,
         elevation: 1,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#c2e8e8',
+        borderRadius: 8, // Slightly rounded corners
+        borderWidth: 2,
+        borderColor: '#66B2B2',
     },
     bannerText: {
         fontSize: 20,
         textAlign: 'center',
-        color: '#34495e',
+        fontWeight: '600',
+        color: '#333',
         marginBottom: 8,
         marginLeft: 2,
+        padding: 8,
+    },
+    text: {
+        fontSize: 20,
+        color: '#333',
+        marginBottom: 8,
+        marginHorizontal: 4,
         padding: 8,
     },
     textContainer: {

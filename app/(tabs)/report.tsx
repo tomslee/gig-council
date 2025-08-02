@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useIsFocused } from "@react-navigation/native";
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { Assignment, Collection, CATEGORIES } from '../../types/types';
+import { Assignment, CATEGORIES, Collection, CategoryInfo, PayReport } from '../../types/types';
 import { firestoreService } from '../../services/firestoreService';
 import { useUserContext } from '../../contexts/UserContext';
 import { timelineUtils } from '@/lib/timelineUtils';
@@ -31,22 +31,6 @@ export default function ReportScreen() {
         return { hours, minutes };
     }
 
-    class SessionInfo {
-        minutes: number;
-        sessions: number;
-        constructor(data: { minutes: number; sessions: number }) {
-            this.minutes = data.minutes;
-            this.sessions = data.sessions;
-        }
-    };
-
-    type CategoryInfo = {
-        [key: string]: {
-            minutes: number;
-            assignmentCount: number;
-        };
-    };
-
     const createEmptyCategoryInfo = (): CategoryInfo => {
         return CATEGORIES.reduce((acc, category) => {
             acc[category.label] = { minutes: 0, assignmentCount: 0 };
@@ -60,51 +44,7 @@ export default function ReportScreen() {
         data: Assignment[]; // Array of assignments in this category
     }
 
-    const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] => {
-        const grouped = assignments.reduce((acc, assignment) => {
-            if (assignment.startTime) {
-                const t = new Date(assignment.startTime.getTime());
-                const assignmentDate = new Date(t.setHours(0, 0, 0, 0)).toLocaleDateString(
-                    'en-CA', { weekday: 'short', day: 'numeric', month: 'short' });
-                if (assignmentDate) {
-                    if (!acc[assignmentDate]) {
-                        acc[assignmentDate] = [];
-                    }
-                    acc[assignmentDate].push(assignment);
-                };
-            };
-            return acc;
-        }, {} as Record<string, Assignment[]>);
-        return Object.entries(grouped).map(([title, data]) => ({
-            title,
-            data
-        }));
-    };
-
-    type PayReport = {
-        "totalSessions": number;
-        "totalAssignmentMinutes": number;
-        "totalAssignments": number;
-        "sessionInfo": SessionInfo;
-        "paidMinutes": number;
-        "paidAssignments": number;
-        "categoryInfo": CategoryInfo;
-        "categorySections": {};
-        "assignmentsByDate": {};
-    };
-
     const midnightLastNight = new Date(new Date().setHours(0, 0, 0, 0));
-
-    function isDateToday(someDate: Date): boolean {
-        const today = new Date(); // Creates a Date object for the current moment
-
-        // Compares year, month (0-indexed), and day of the month
-        return (
-            someDate.getFullYear() === today.getFullYear() &&
-            someDate.getMonth() === today.getMonth() &&
-            someDate.getDate() === today.getDate()
-        );
-    }
 
     // Initialize with proper default values
     const [payReport, setPayReport] = useState<PayReport>({

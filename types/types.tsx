@@ -41,7 +41,7 @@ export interface PayReport {
     "assignmentsByDate": {};
 };
 
-class SessionInfo {
+export class SessionInfo {
     minutes: number;
     sessions: number;
     constructor(data: { minutes: number; sessions: number }) {
