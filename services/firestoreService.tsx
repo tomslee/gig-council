@@ -37,17 +37,22 @@ export const firestoreService = {
   // Get all open assignments owned by one user
   async getAllOpenAssignmentsByOwner(collectionName: string, owner: string) {
     try {
+      // Rewriting to filter on the client, because of Firestore indexing limitations
+      // and problems
       const q = query(collection(FIRESTORE_DB, collectionName),
         where('owner', '==', owner),
-        where('endTime', '==', null));
+        //   where('endTime', '==', null)
+      );
       const snapshot = await getDocs(q);
       const assignments = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         startTime: doc.data().startTime ? doc.data().startTime.toDate() : new Date(),
+        endTime: doc.data().endTime ? doc.data().endTime.toDate() : new Date(),
       })) as Assignment[];
-      console.log("getAllOpenAssignmentsByOwner: ", assignments);
-      return assignments;
+      return assignments.filter((assignment) =>
+        assignment.endTime == null ||
+        assignment.endTime > new Date());
     } catch (error) {
       console.error('Error getting assignments ', error);
     };
@@ -79,16 +84,13 @@ export const firestoreService = {
   async createAssignment(collectionName: string, newAssignment: Assignment) {
     try {
       const collectionRef = collection(FIRESTORE_DB, collectionName);
-      const startTime = new Date();
       const docRef = await addDoc(collectionRef, {
         ...newAssignment,
-        startTime: startTime,
       });
       console.log(`Created assignment id=`, docRef.id);
       return {
         id: docRef.id,
         ...newAssignment,
-        startTime: startTime,
       };
     } catch (error) {
       console.error(`Error creating assignment:`, error);
@@ -154,15 +156,22 @@ export const firestoreService = {
     try {
       const collectionRef = collection(FIRESTORE_DB, collectionName);
       const startTime = new Date();
+      const hours: number = startTime.getHours();
+      const minutes: number = startTime.getMinutes();
+      const endTime = (hours < 17 ?
+        new Date(new Date().setHours(17, 0, 0, 0)) :
+        new Date(new Date().setHours(hours + 1)));
       const docRef = await addDoc(collectionRef, {
         ...newSession,
         startTime: startTime,
+        endTime: endTime,
       });
       console.log(`Created session id=`, docRef.id);
       return {
         id: docRef.id,
         ...newSession,
         startTime: startTime,
+        endTime: endTime,
       };
     } catch (error) {
       console.error(`Error creating session:`, error);
@@ -190,15 +199,20 @@ export const firestoreService = {
   // Get all open sessions owned by one user (there should be only one)
   async getAllOpenSessionsByOwner(collectionName: string, owner: string) {
     try {
+      // rewriting to filter on the client, because of Firestore
+      // indexing limitations and problems
       const q = query(collection(FIRESTORE_DB, collectionName),
         where('owner', '==', owner),
         where('endTime', '==', null));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
+      const sessions = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         startTime: doc.data().startTime.toDate(),
       })) as Session[];
+      return sessions.filter((session) =>
+        session.endTime == null ||
+        session.endTime > new Date())
     } catch (error) {
       console.error('Error getting sessions ', error);
     };

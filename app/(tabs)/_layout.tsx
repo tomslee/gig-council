@@ -35,7 +35,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="report"
                 options={{
-                    title: 'Report',
+                    title: 'Reports',
                     tabBarIcon: ({ color, focused }) => (
                         <Ionicons name={focused ? 'document-text-sharp' : 'document-text-outline'} color={color} size={24} />
                     ),

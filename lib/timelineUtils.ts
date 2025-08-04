@@ -1,11 +1,12 @@
 /*
  * A set of functions for ensuring appropriate start and end times for assignments and sessions
  */
-import { useState } from 'react';
 import { UserData, useUserContext } from '@/contexts/UserContext';
-import { firestoreService } from '@/services/firestoreService';
-import { Assignment, Collection, CATEGORIES, CategoryInfo, PayReport } from '@/types/types';
 //const [docList, setDocList] = useState<any>([]);
+import { firestoreService } from '@/services/firestoreService';
+import { Assignment, Collection, CATEGORIES, CategoryInfo, PayReport, Session, StatisticsByDate } from '@/types/types';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 class SessionInfo {
     minutes: number;
@@ -26,9 +27,9 @@ const createEmptyCategoryInfo = (): CategoryInfo => {
 
 // Define the Section interface that SectionList expects
 interface AssignmentSection {
-    title: string; // This is the category name ("Phone call", "Meeting", etc.)
+    title: string; // This is the Date, to be used as a title
     data: Assignment[]; // Array of assignments in this category
-}
+};
 
 const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] => {
     const grouped = assignments.reduce((acc, assignment) => {
@@ -40,12 +41,86 @@ const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] 
                 if (!acc[assignmentDate]) {
                     acc[assignmentDate] = [];
                 }
-                acc[assignmentDate].push(assignment);
+            };
+            acc[assignmentDate].push(assignment);
+        };
+        return acc;
+    },
+        {} as Record<string, Assignment[]>);
+    return Object.entries(grouped).map(([title, data]) => ({
+        title,
+        data
+    }));
+};
+
+// Define the Section interface that SectionList expects
+interface StatisticsSection {
+    title: string; // This is the Date, to be used as a title
+    data: StatisticsByDate[]; // Array of statistics in this category
+};
+
+const groupStatisticsByDate = (assignments: Assignment[], sessions: Session[]):
+    StatisticsSection[] => {
+    const groupedAssignments = assignments.reduce((acc, assignment) => {
+        if (assignment.startTime) {
+            const t = new Date(assignment.startTime.getTime());
+            const assignmentDate = new Date(t.setHours(0, 0, 0, 0)).toLocaleDateString(
+                'en-CA', { weekday: 'short', day: 'numeric', month: 'short' });
+            // Initialize day stats if not exists
+            if (assignmentDate) {
+                if (!acc[assignmentDate]) {
+                    acc[assignmentDate] = [];
+                    acc[assignmentDate].push(<StatisticsByDate>{
+                        id: uuidv4(),
+                        date: assignmentDate,
+                        sessionMinutes: 0,
+                        assignmentMinutes: 0,
+                        paidMinutes: 0,
+                    });
+                }
+            };
+            if (assignment.endTime) {
+                const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60 * 1000.0) || 0;
+                acc[assignmentDate][0].assignmentMinutes += assignmentMinutes;
+                const thisCategory = CATEGORIES.find(item => item["label"] === assignment.category) || {};
+                if ("label" in thisCategory && "payable" in thisCategory) {
+                    if (thisCategory["payable"]) {
+                        acc[assignmentDate][0].paidMinutes += assignmentMinutes;
+                    } else {
+                    };
+                };
             };
         };
         return acc;
-    }, {} as Record<string, Assignment[]>);
-    return Object.entries(grouped).map(([title, data]) => ({
+    },
+        {} as Record<string, StatisticsByDate[]>);
+    const groupedSessions = sessions.reduce((acc, session) => {
+        if (session.startTime) {
+            const t = new Date(session.startTime.getTime());
+            const sessionDate = new Date(t.setHours(0, 0, 0, 0)).toLocaleDateString(
+                'en-CA', { weekday: 'short', day: 'numeric', month: 'short' });
+            // Initialize day stats if not exists
+            if (sessionDate) {
+                if (!acc[sessionDate]) {
+                    acc[sessionDate] = [];
+                    acc[sessionDate].push(<StatisticsByDate>{
+                        id: uuidv4(),
+                        date: sessionDate,
+                        sessionMinutes: 0,
+                        assignmentMinutes: 0,
+                        paidMinutes: 0,
+                    });
+                }
+            };
+            if (session.endTime) {
+                const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
+                acc[sessionDate][0].sessionMinutes += sessionMinutes;
+            };
+        };
+        return acc;
+    },
+        {} as Record<string, StatisticsByDate[]>);
+    return Object.entries(groupedAssignments).map(([title, data]) => ({
         title,
         data
     }));
@@ -65,6 +140,7 @@ export const timelineUtils = {
             categoryInfo: createEmptyCategoryInfo(),
             categorySections: {},
             assignmentsByDate: {},
+            statisticsByDate: {},
         };
         for (const category of CATEGORIES) {
             newReport.categoryInfo[category.label].minutes = 0;
@@ -79,11 +155,11 @@ export const timelineUtils = {
                 for (const session of sessions) {
                     if (session.startTime && session.startTime >= earliestDate) {
                         if (session.endTime == null) {
-                            const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60000.0) || 0;
+                            const sessionMinutes = Math.abs(new Date().getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
                             newReport.sessionInfo["minutes"] += sessionMinutes;
                             newReport.sessionInfo["sessions"] += 1;
                         } else {
-                            const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60000.0) || 0;
+                            const sessionMinutes = Math.abs(session.endTime.getTime() - session.startTime.getTime()) / (60 * 1000.0) || 0;
                             newReport.sessionInfo["minutes"] += sessionMinutes;
                             newReport.sessionInfo["sessions"] += 1;
                         };
@@ -129,10 +205,13 @@ export const timelineUtils = {
                         };
                     };
                 };
-                console.log("getReport: fetched", docList.length, "assignments.");
                 // Now group the assignments by date and add them in to the structure for presentation
                 assignments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
                 newReport.assignmentsByDate = groupAssignmentsByDate(assignments);
+                // We need both assignments and sessions to compute statistics
+                if (sessions && assignments) {
+                    newReport.statisticsByDate = groupStatisticsByDate(assignments, sessions);
+                }
                 return newReport;
             }
         } catch (err) {

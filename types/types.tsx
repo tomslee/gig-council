@@ -29,6 +29,14 @@ export interface Session {
     endTime: Date | null;
 };
 
+export interface StatisticsByDate {
+    id: string;
+    date: string; // YYYY-MM-DD format
+    sessionMinutes: number;
+    assignmentMinutes: number;
+    paidMinutes: number;
+}
+
 export interface PayReport {
     "totalSessions": number;
     "totalAssignmentMinutes": number;
@@ -39,9 +47,11 @@ export interface PayReport {
     "categoryInfo": CategoryInfo;
     "categorySections": {};
     "assignmentsByDate": {};
+    "statisticsByDate": {},
 };
 
-class SessionInfo {
+
+export class SessionInfo {
     minutes: number;
     sessions: number;
     constructor(data: { minutes: number; sessions: number }) {
