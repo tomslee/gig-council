@@ -94,9 +94,9 @@ export default function ReportScreen() {
             style={styles.reportItem}
             onPress={() => alert(id)}
         >
-            <Text style={styles.text}>Paid Minutes: {paidMinutes.toFixed()}</Text>
-            <Text style={styles.text}>Engaged Minutes: {assignmentMinutes.toFixed()}</Text>
-            <Text style={styles.text}>Session Minutes: {sessionMinutes.toFixed()}</Text>
+            <Text style={styles.text}>You spent {(paidMinutes / 60).toFixed()}h:{(paidMinutes % 60).toFixed()}m on paid assignments at $17.20 per hour for a total of ${(paidMinutes * 17.20 / 60).toFixed(2)}.</Text>
+            <Text style={styles.text}>Time on assignments: {(assignmentMinutes / 60).toFixed()}h:{(assignmentMinutes % 60).toFixed()}m</Text>
+            <Text style={styles.text}>Session minutes: {sessionMinutes.toFixed()}</Text>
         </TouchableOpacity>
     );
 
@@ -160,26 +160,22 @@ const styles = StyleSheet.create({
     reportContainer: {
         flex: 1,
         marginHorizontal: 8,
-        paddingHorizontal: 24,
         paddingTop: 2,
         paddingBottom: 4,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
-    reportContainerContent: {
-    },
     reportSection: {
-        marginTop: 8,
-        marginBottom: 8,
+        marginVertical: 8,
         paddingBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
+        borderBottomColor: '#a0a0a0',
         backgroundColor: '#f6f6f6',
     },
     reportItem: {
         paddingVertical: 8,
         paddingHorizontal: 16,
-        marginHorizontal: 8,
+        marginHorizontal: 24,
         marginVertical: 8,
         backgroundColor: '#ffffff',
         borderRadius: 8, // Slightly rounded corners

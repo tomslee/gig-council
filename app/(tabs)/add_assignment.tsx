@@ -106,13 +106,16 @@ export default function AddAssignment() {
     // Add the new assignment
     try {
       if (userData) {
+        const now: Date = new Date();
+        const thirtyMinutesFromNow: Date = new Date(now.setMinutes(now.getMinutes() + 30));
         const activeAssignment: Assignment = {
           owner: userData.username,
           description: formAssignment.description,
           category: formAssignment.category,
-          startTime: null,
-          endTime: null,
+          startTime: new Date(),
+          endTime: thirtyMinutesFromNow,
         };
+        console.log("Creating new assignment:", activeAssignment);
         await firestoreService.createAssignment(Collection.assignment, activeAssignment);
         updateUserData({ isOnAssignment: true });
       };

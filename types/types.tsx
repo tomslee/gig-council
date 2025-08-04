@@ -30,6 +30,7 @@ export interface Session {
 };
 
 export interface StatisticsByDate {
+    id: string;
     date: string; // YYYY-MM-DD format
     sessionMinutes: number;
     assignmentMinutes: number;

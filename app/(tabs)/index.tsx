@@ -293,13 +293,22 @@ export default function HomeScreen() {
                     Description: {docList[docList.length - 1]["description"]}
                   </Text>
                   {docList[docList.length - 1]["startTime"] ? (
-                    <Text style={styles.listItemText}>
-                      Started at {docList[docList.length - 1]["startTime"]
-                        .toLocaleTimeString(undefined, {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                    </Text>) : null
+                    <Text>
+                      <Text style={styles.listItemText}>
+                        Started at {docList[docList.length - 1]["startTime"]
+                          .toLocaleTimeString(undefined, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                      </Text>
+                      <Text style={styles.listItemText}>
+                        , scheduled to finish at {docList[docList.length - 1]["endTime"]
+                          .toLocaleTimeString(undefined, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                      </Text></Text>
+                  ) : null
                   }
                 </TouchableOpacity>
               </View>
@@ -341,6 +350,8 @@ export default function HomeScreen() {
                   <Text style={styles.saveButtonText}>Sign out of work</Text>
                 )}
               </TouchableOpacity>
+              <Text style={styles.text}>You will automatically be signed out at 5pm,
+                or one hour after your session start time, whichever is later.</Text>
             </View>
           ) : null}
 
