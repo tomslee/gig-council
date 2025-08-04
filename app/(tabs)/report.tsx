@@ -164,10 +164,11 @@ const styles = StyleSheet.create({
         paddingBottom: 4,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
+        borderRadius: 4,
     },
     reportSection: {
         marginVertical: 8,
-        paddingBottom: 12,
+        paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#a0a0a0',
         backgroundColor: '#f6f6f6',
@@ -202,9 +203,8 @@ const styles = StyleSheet.create({
     },
     sectionList: {
         // width: '100%', // Ensures the container takes full width
-        marginVertical: 0,
-        borderBottomWidth: 6,
-        borderBottomColor: '#E0E0E0',
+        paddingVertical: 8,
+        marginVertical: 8,
         backgroundColor: '#f9f8fa',
         elevation: 0,
     },

@@ -162,7 +162,6 @@ const styles = StyleSheet.create({
     reportContainer: {
         flex: 1,
         marginHorizontal: 8,
-        paddingHorizontal: 24,
         paddingTop: 2,
         paddingBottom: 4,
         borderBottomWidth: 1,
@@ -170,17 +169,16 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     reportSection: {
-        marginTop: 8,
-        marginBottom: 8,
+        marginVertical: 8,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
+        borderBottomColor: '#a0a0a0',
         backgroundColor: '#f6f6f6',
     },
     reportItem: {
         paddingVertical: 8,
         paddingHorizontal: 16,
-        marginHorizontal: 8,
+        marginHorizontal: 24,
         marginVertical: 8,
         backgroundColor: '#ffffff',
         borderRadius: 8, // Slightly rounded corners
@@ -213,8 +211,6 @@ const styles = StyleSheet.create({
     },
     sectionList: {
         // width: '100%', // Ensures the container takes full width
-        borderBottomWidth: 6,
-        borderBottomColor: '#66b2b2',
         backgroundColor: '#f9f8fa',
         elevation: 0,
         paddingVertical: 8,
