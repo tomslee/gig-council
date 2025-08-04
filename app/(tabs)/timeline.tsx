@@ -18,7 +18,7 @@ import { Assignment, Collection, CATEGORIES, CategoryInfo, PayReport } from '@/t
 import { useUserContext } from '@/contexts/UserContext';
 import { timelineUtils } from '@/lib/timelineUtils';
 
-export default function ReportScreen() {
+export default function TimelineScreen() {
     const [loading, setLoading] = useState(true);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
@@ -211,10 +211,10 @@ const styles = StyleSheet.create({
     },
     sectionList: {
         // width: '100%', // Ensures the container takes full width
-        backgroundColor: '#f9f8fa',
-        elevation: 0,
         paddingVertical: 8,
         marginVertical: 8,
+        backgroundColor: '#f9f8fa',
+        elevation: 0,
     },
     selectedListItem: {
         backgroundColor: '#dfffdf',

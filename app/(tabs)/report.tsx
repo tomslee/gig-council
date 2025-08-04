@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import {
     StyleSheet,
     Text,
@@ -13,7 +14,8 @@ import {
 import { useIsFocused } from "@react-navigation/native";
 import SectionHeader from '@/components/SectionHeader';
 import { Assignment, CATEGORIES, Collection, CategoryInfo, PayReport, StatisticsByDate } from '../../types/types';
-import { useUserContext } from '../../contexts/UserContext';
+import { useUserContext } from '@/contexts/UserContext';
+import { useStatistics } from '@/contexts/StatisticsContext';
 import { timelineUtils } from '@/lib/timelineUtils';
 import InfoIcon from '../../components/InfoIcon';
 
@@ -22,7 +24,9 @@ export default function ReportScreen() {
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
     const { userData } = useUserContext();
+    const router = useRouter();
     const [docList, setDocList] = useState<any>([]);
+    const { setCurrentStatistics } = useStatistics();
 
     function convertMinutesToHoursAndMinutes(totalMinutes: number): { hours: number; minutes: number } {
         const hours = Math.floor(totalMinutes / 60);
@@ -56,7 +60,7 @@ export default function ReportScreen() {
         categoryInfo: createEmptyCategoryInfo(),
         categorySections: {},
         assignmentsByDate: {},
-        statisticsByDate: new Map(),
+        statisticsByDate: {},
     });
 
     useEffect(() => {
@@ -89,14 +93,35 @@ export default function ReportScreen() {
         </View>
     );
 
-    const displayItem = ({ id, date, paidMinutes, assignmentMinutes, sessionMinutes }: StatisticsByDate) => (
+    const displayTextReport = ({ id, date, sessionMinutes, assignmentMinutes, paidMinutes }: StatisticsByDate) => {
+        setCurrentStatistics({ id, date, sessionMinutes, assignmentMinutes, paidMinutes });
+        router.push({
+            pathname: '../modal_text_report', // Navigate to the /add_assignment route
+        })
+    };
+
+    const displayItem = ({ id, date, sessionMinutes, assignmentMinutes, paidMinutes }: StatisticsByDate) => (
         <TouchableOpacity
             style={styles.reportItem}
-            onPress={() => alert(id)}
+            onPress={() => displayTextReport({ id, date, sessionMinutes, assignmentMinutes, paidMinutes })}
         >
-            <Text style={styles.text}>You spent {(paidMinutes / 60).toFixed()}h:{(paidMinutes % 60).toFixed()}m on paid assignments at $17.20 per hour for a total of ${(paidMinutes * 17.20 / 60).toFixed(2)}.</Text>
-            <Text style={styles.text}>Time on assignments: {(assignmentMinutes / 60).toFixed()}h:{(assignmentMinutes % 60).toFixed()}m</Text>
-            <Text style={styles.text}>Session minutes: {sessionMinutes.toFixed()}</Text>
+            {/*
+            <Text style={styles.text}>Time on paid assignment: {(paidMinutes / 60).toFixed()}h:{(paidMinutes % 60).toFixed()}m</Text>
+            <Text style={styles.text}>Time on assignment: {(assignmentMinutes / 60).toFixed()}h:{(assignmentMinutes % 60).toFixed()}m</Text>
+            <Text style={styles.text}>Time online {(sessionMinutes / 60).toFixed()}h:{(sessionMinutes % 60).toFixed()}m</Text>
+                */}
+            <Text style={styles.text}>
+                You made ${(17.20 * paidMinutes / 60).toFixed(2)} before expenses, which is...
+            </Text>
+            <Text style={styles.text}>
+                $17.20/hr of "engaged time"
+            </Text>
+            <Text style={styles.text}>
+                ${(17.20 * paidMinutes / assignmentMinutes).toFixed(2)}/hr on all assignments.
+            </Text>
+            <Text style={styles.text}>
+                ${(17.20 * paidMinutes / sessionMinutes).toFixed(2)}/hr online.
+            </Text>
         </TouchableOpacity>
     );
 
@@ -245,35 +270,3 @@ const styles = StyleSheet.create({
         color: '#333',
     },
 });
-
-/*
-<Text style={styles.titleText}>
-    Congratulations {userData.username}!
-</Text>
-<Text style={styles.paragraph}>
-    So far today, you have spent
-    <Text style={{ fontWeight: 'bold' }}> {payReport.paidMinutes.toFixed()} minutes</Text> engaged in paid assignments.
-    Thanks to the Ontario Digital Platform Workers' Rights Act, you are guaranteed a minimum
-    wage of $17.20 / hour for those minutes, for a total of
-    <Text style={{ fontWeight: 'bold' }}> ${(17.20 * payReport.paidMinutes / 60).toFixed(2)}!</Text>
-</Text>
-{(payReport.totalAssignmentMinutes > payReport.paidMinutes) &&
-    <Text style={styles.paragraph}>
-        So far today you have also spent a total of
-        <Text style={{ fontWeight: 'bold' }}> {(payReport.totalAssignmentMinutes - payReport.paidMinutes).toFixed()}&nbsp;minutes </Text>
-        on unpaid assignments, like office work and administrative tasks.
-        Even though you won't get paid for that time, we love that you're investing in your future, ensuring that you present
-        your best self to your constituents and to the City of Toronto.
-    </Text>}
-<Text style={styles.paragraph}>
-    So far today you have spent a total of <Text style={{ fontWeight: 'bold' }}>{payReport.sessionInfo.minutes.toFixed()} minutes</Text> signed on and
-    available for work. Even though you won't get paid for much of that time, it is great to know you were available for your
-    constituents and coworkers in case anyone needed you. Your earnings were
-    <Text style={{ fontWeight: 'bold' }} > ${(17.20 * payReport.paidMinutes / payReport.sessionInfo.minutes).toFixed(2)} per hour online!</Text>
-</Text>
-<Text style={styles.paragraph}>
-    And of course you know that that's before your expenses of office rental, IT resources, phone, supply and maintenance of your equipment,
-    clothes to show your professionalism and more. But surely that's a minor price to pay for the flexibility you now have as a gig worker.
-</Text>
-<Text style={styles.paragraph}>Let's make tomorrow an even better day!</Text>
-*/

@@ -37,6 +37,18 @@ export interface StatisticsByDate {
     paidMinutes: number;
 }
 
+// Define the Section interface that SectionList expects
+export interface AssignmentSection {
+    title: string; // This is the Date, to be used as a title
+    data: Assignment[]; // Array of assignments in this category
+};
+
+// Define the Section interface that SectionList expects
+export interface StatisticsSection {
+    title: string; // This is the Date, to be used as a title
+    data: StatisticsByDate[]; // Array of statistics in this category
+};
+
 export interface PayReport {
     "totalSessions": number;
     "totalAssignmentMinutes": number;
@@ -47,7 +59,7 @@ export interface PayReport {
     "categoryInfo": CategoryInfo;
     "categorySections": {};
     "assignmentsByDate": {};
-    "statisticsByDate": {},
+    "statisticsByDate": StatisticsSection[];
 };
 
 

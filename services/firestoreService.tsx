@@ -215,7 +215,6 @@ export const firestoreService = {
       const openSessions = sessions.filter((session) =>
         session.endTime == null ||
         session.endTime > new Date());
-      console.log("getAllOpenSessions: ", openSessions);
       return openSessions
     } catch (error) {
       console.error('Error getting sessions ', error);

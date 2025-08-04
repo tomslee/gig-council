@@ -28,7 +28,6 @@ export default function ReadMore() {
                     <Text style={styles.headerText}>
                         The RideFair Gig Challenge
                     </Text>
-                    <Text></Text>
                 </View>
                 <ScrollView style={styles.scrollview} contentContainerStyle={styles.scrollContent}>
                     <Text style={styles.paragraph}>
