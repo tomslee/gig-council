@@ -1,16 +1,16 @@
 /*
  * User Context holds the UserData structure and makes it available to various screens. 
  */
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import CrossPlatformStorage from '@/components/CrossPlatformStorage';
+
 export interface UserData {
   username: string,
   defaultUsername: string,
   sessionID: string,
   isOnAssignment: boolean,
 };
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import CrossPlatformStorage from '../components/CrossPlatformStorage';
 
 interface UserContextType {
   userData: UserData | null;

@@ -22,6 +22,7 @@ import { firestoreService } from '../../services/firestoreService';
 import HelpIcon from '../../components/HelpIcon';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment, Session } from '../../types/types';
+import { collection } from 'firebase/firestore';
 // End of imports
 
 /*
@@ -38,12 +39,18 @@ export default function HomeScreen() {
 
   useEffect(() => {
     setLoading(true);
-    const fetchAssignmentsForUser = async () => {
+    const fetchSessionsAndAssignmentsForUser = async () => {
       // Get any open assignments for the user
       try {
         setDocList([]);
         if (userData && userData.username) {
           if (isFocused) {
+            const openSessions = await firestoreService.getAllOpenSessionsByOwner(Collection.session, userData.username);
+            if (userData.sessionID && openSessions && openSessions.length == 0) {
+              console.log("HomeSecreen.useEffect: local sessionID, but no open sessions in firestore");
+              // there are no open sessions in Firestore, but there is a sessionID locally. Get rid of the local sessionID
+              await saveUserData({ ...userData, sessionID: '', isOnAssignment: false });
+            }; // openSessions && userData.sessionID
             const assignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userData.username);
             if (assignments) {
               for (const assignment of assignments) {
@@ -53,7 +60,7 @@ export default function HomeScreen() {
                   ", ", assignment.category,
                   ", ", assignment.startTime);
               };
-              console.log("Fetched", docList.length, "unfinished assignments for", userData.username, ".");
+              console.log("HomeScreen.useEffect: fetched", docList.length, "unfinished assignments for", userData.username, ".");
               setDocList(docList);
               setRefresh(!refresh);
             };
@@ -67,7 +74,7 @@ export default function HomeScreen() {
         setRefresh(!refresh);
       }; // try-catch
     }; // fetchAssignmentsForUser
-    fetchAssignmentsForUser();
+    fetchSessionsAndAssignmentsForUser();
   }, [isFocused, userData]);
 
   const goToAddAssignment = () => {

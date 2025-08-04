@@ -202,17 +202,20 @@ export const firestoreService = {
       // rewriting to filter on the client, because of Firestore
       // indexing limitations and problems
       const q = query(collection(FIRESTORE_DB, collectionName),
-        where('owner', '==', owner),
-        where('endTime', '==', null));
+        where('owner', '==', owner));
       const snapshot = await getDocs(q);
       const sessions = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         startTime: doc.data().startTime.toDate(),
+        endTime: (doc.data().endTime ? doc.data().endTime.toDate() : null),
       })) as Session[];
-      return sessions.filter((session) =>
+      // Only get open sessions: with no endTime or with an endTime in
+      // the future
+      const openSessions = sessions.filter((session) =>
         session.endTime == null ||
-        session.endTime > new Date())
+        session.endTime > new Date());
+      return openSessions
     } catch (error) {
       console.error('Error getting sessions ', error);
     };

@@ -4,8 +4,9 @@
 import { UserData, useUserContext } from '@/contexts/UserContext';
 //const [docList, setDocList] = useState<any>([]);
 import { firestoreService } from '@/services/firestoreService';
-import { Assignment, Collection, CATEGORIES, CategoryInfo, PayReport, Session, StatisticsByDate } from '@/types/types';
+import { Assignment, AssignmentSection, Collection, CATEGORIES, CategoryInfo, PayReport, Session, StatisticsByDate, StatisticsSection } from '@/types/types';
 import 'react-native-get-random-values';
+import { executeNativeBackPress } from 'react-native-screens';
 import { v4 as uuidv4 } from 'uuid';
 
 class SessionInfo {
@@ -22,13 +23,6 @@ const createEmptyCategoryInfo = (): CategoryInfo => {
         acc[category.label] = { minutes: 0, assignmentCount: 0 };
         return acc;
     }, {} as CategoryInfo);
-};
-
-
-// Define the Section interface that SectionList expects
-interface AssignmentSection {
-    title: string; // This is the Date, to be used as a title
-    data: Assignment[]; // Array of assignments in this category
 };
 
 const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] => {
@@ -53,10 +47,39 @@ const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] 
     }));
 };
 
-// Define the Section interface that SectionList expects
-interface StatisticsSection {
-    title: string; // This is the Date, to be used as a title
-    data: StatisticsByDate[]; // Array of statistics in this category
+// Helper function for groupStatisticsByDate, to combine the
+// assignment and session accumulators.
+function combineAggregates(
+    groupedAssignments: Record<string, StatisticsByDate[]>,
+    groupedSessions: Record<string, StatisticsByDate[]>
+): Record<string, StatisticsByDate[]> {
+    const result: Record<string, StatisticsByDate[]> = {};
+
+    // Get all unique dates
+    const allDates = new Set([
+        ...Object.keys(groupedAssignments),
+        ...Object.keys(groupedSessions)
+    ]);
+
+    try {
+        allDates.forEach(date => {
+            const stats = [{
+                id: groupedAssignments[date] ?
+                    groupedAssignments[date][0].id : uuidv4(),
+                date: groupedAssignments[date][0].date,
+                sessionMinutes: groupedSessions[date] ?
+                    groupedSessions[date][0].sessionMinutes : 0,
+                assignmentMinutes: groupedAssignments[date] ?
+                    groupedAssignments[date][0].assignmentMinutes : 0,
+                paidMinutes: groupedAssignments[date] ?
+                    groupedAssignments[date][0].paidMinutes : 0,
+            },];
+            result[date] = stats;
+        });
+    } catch (e) {
+        //console.log(e);
+    }
+    return result;
 };
 
 const groupStatisticsByDate = (assignments: Assignment[], sessions: Session[]):
@@ -120,7 +143,8 @@ const groupStatisticsByDate = (assignments: Assignment[], sessions: Session[]):
         return acc;
     },
         {} as Record<string, StatisticsByDate[]>);
-    return Object.entries(groupedAssignments).map(([title, data]) => ({
+    const mergedStatistics = combineAggregates(groupedAssignments, groupedSessions);
+    return Object.entries(mergedStatistics).map(([title, data]) => ({
         title,
         data
     }));
