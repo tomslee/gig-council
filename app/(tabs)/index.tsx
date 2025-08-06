@@ -133,7 +133,7 @@ export default function HomeScreen() {
       if (userData) {
         setLoading(true);
         console.log("HomeScreen.appSignIn: signing in to Firebase.");
-        await signInWithEmailAndPassword(FIREBASE_AUTH, config.firebaseEmail, config.firebasePassword)
+        await signInWithEmailAndPassword(FIREBASE_AUTH, process.env.EXPO_PUBLIC_FIREBASE_EMAIL, process.env.EXPO_PUBLIC_FIREBASE_PASSWORD)
           .then((userCredential) => {
             const user = userCredential.user;
             console.log("Firebase sign-in succeeded: user UID:", user.uid);

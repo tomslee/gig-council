@@ -144,6 +144,7 @@ const groupStatisticsByDate = (assignments: Assignment[], sessions: Session[]):
     },
         {} as Record<string, StatisticsByDate[]>);
     const mergedStatistics = combineAggregates(groupedAssignments, groupedSessions);
+    console.log("Computed reports.")
     return Object.entries(mergedStatistics).map(([title, data]) => ({
         title,
         data
