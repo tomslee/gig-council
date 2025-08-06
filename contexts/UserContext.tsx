@@ -2,6 +2,9 @@
  * User Context holds the UserData structure and makes it available to various screens. 
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { FIREBASE_EMAIL, FIREBASE_PASSWORD } from "@/secrets/config";
+import { FIREBASE_AUTH } from "@/lib/firebase";
 import * as SecureStore from 'expo-secure-store';
 import CrossPlatformStorage from '@/components/CrossPlatformStorage';
 
@@ -31,13 +34,28 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Load userData on app start
+  // SignIn to Firebase and load userData on app start
   useEffect(() => {
-    loadUserData();
+    const signIn = async () => {
+      console.log("Signing in to Firebase on app start.");
+      await signInWithEmailAndPassword(FIREBASE_AUTH, FIREBASE_EMAIL, FIREBASE_PASSWORD)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          console.log("Firebase sign-in succeeded: user UID:", user.uid);
+          // You can now use the 'user' object for further operations
+        })
+        .catch((error) => {
+          // Handle errors during sign-in
+          console.error("Firebase sign-in failed:", error);
+        });
+      loadUserData();
+    };
+    signIn();
   }, []);
 
   const loadUserData = async () => {
     try {
+      console.log("Loading userData on app start.")
       const storedUsername = "";
       /*
       const storedDefaultUsername = await SecureStore.getItemAsync("_defaultUsername");
@@ -55,7 +73,7 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
       }
       if (storedUserData) {
         setUserData(storedUserData);
-        console.log("Setting storedUserData in loadUserData", storedUserData);
+        console.log("UserContext:loadUserData: setting storedUserData", storedUserData);
       };
     } catch (error) {
       console.error('Error loading userData:', error);

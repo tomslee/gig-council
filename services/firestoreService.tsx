@@ -11,14 +11,29 @@ import {
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore';
-import { FIRESTORE_DB } from '../lib/firebase';
+import { FIREBASE_AUTH, FIRESTORE_DB } from '@/lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { Assignment, Session } from '../types/types';
+
+const waitForAuth = (): Promise<User | null> => {
+  return new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+};
 
 export const firestoreService = {
 
   // Get all documents owned by one user
   async getAllAssignmentsByOwner(collectionName: string, owner: string) {
     try {
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const q = query(collection(FIRESTORE_DB, collectionName),
         where('owner', '==', owner));
       const snapshot = await getDocs(q);
@@ -39,6 +54,11 @@ export const firestoreService = {
     try {
       // Rewriting to filter on the client, because of Firestore indexing limitations
       // and problems
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const q = query(collection(FIRESTORE_DB, collectionName),
         where('owner', '==', owner),
         //   where('endTime', '==', null)
@@ -61,6 +81,11 @@ export const firestoreService = {
   // Get a single document by ID
   async getAssignmentByID(collectionName: string, docId: string) {
     try {
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const docRef = doc(FIRESTORE_DB, collectionName, docId);
       const assignmentDoc = await getDoc(docRef);
 
@@ -83,6 +108,11 @@ export const firestoreService = {
   // Create a new assignment
   async createAssignment(collectionName: string, newAssignment: Assignment) {
     try {
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const collectionRef = collection(FIRESTORE_DB, collectionName);
       const docRef = await addDoc(collectionRef, {
         ...newAssignment,
@@ -101,6 +131,11 @@ export const firestoreService = {
   // Update an assignment
   async updateAssignment(collectionName: string, updatedAssignment: Assignment) {
     try {
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const collectionRef = collection(FIRESTORE_DB, collectionName);
       const docRef = await doc(collectionRef, updatedAssignment.id);
       await setDoc(docRef, updatedAssignment, { merge: true });
@@ -117,6 +152,11 @@ export const firestoreService = {
   // Close an assignment
   async closeAssignment(collectionName: string, assignment: Assignment) {
     try {
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const docRef = doc(collection(FIRESTORE_DB, collectionName),
         assignment.id);
       const endTime = new Date();
@@ -138,6 +178,11 @@ export const firestoreService = {
 
   async closeAllAssignmentsForOwner(collectionName: string, owner: string) {
     try {
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(
         collectionName, owner);
       if (openAssignments) {
@@ -154,6 +199,11 @@ export const firestoreService = {
   // Create a new session (log in for work)
   async createSession(collectionName: string, newSession: Session) {
     try {
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const collectionRef = collection(FIRESTORE_DB, collectionName);
       const startTime = new Date();
       const hours: number = startTime.getHours();
@@ -201,6 +251,11 @@ export const firestoreService = {
     try {
       // rewriting to filter on the client, because of Firestore
       // indexing limitations and problems
+      // Wait for auth state to be definitely ready
+      const currentUser = await waitForAuth();
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
       const q = query(collection(FIRESTORE_DB, collectionName),
         where('owner', '==', owner));
       const snapshot = await getDocs(q);
@@ -217,7 +272,7 @@ export const firestoreService = {
         session.endTime > new Date());
       return openSessions
     } catch (error) {
-      console.error('Error getting sessions ', error);
+      console.error('Error getting open sessions ', error);
     };
   },
 

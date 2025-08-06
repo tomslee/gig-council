@@ -16,13 +16,13 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { signInAnonymously, signOut } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { FIREBASE_AUTH } from '../../lib/firebase';
 import { firestoreService } from '../../services/firestoreService';
 import HelpIcon from '../../components/HelpIcon';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment, Session } from '../../types/types';
-import { collection } from 'firebase/firestore';
+import { FIREBASE_EMAIL, FIREBASE_PASSWORD } from '@/secrets/config';
 // End of imports
 
 /*
@@ -92,20 +92,6 @@ export default function HomeScreen() {
     })
   };
 
-  const firebaseSignIn = async () => {
-    signInAnonymously(FIREBASE_AUTH)
-      .then((userCredential) => {
-        // Anonymous user signed in successfully
-        const user = userCredential.user;
-        console.log("Firebase sign-in succeeded: user UID:", user.uid);
-        // You can now use the 'user' object for further operations
-      })
-      .catch((error) => {
-        // Handle errors during anonymous sign-in
-        console.error("Anonymous sign-in failed:", error);
-      });
-  };
-
   const firebaseSignOut = async () => {
     // End the anonymous Firebase session
     signOut(FIREBASE_AUTH)
@@ -139,8 +125,21 @@ export default function HomeScreen() {
     try {
       if (userData) {
         setLoading(true);
+        console.log("HomeScreen.appSignIn: signing in to Firebase.");
+        await signInWithEmailAndPassword(FIREBASE_AUTH, FIREBASE_EMAIL, FIREBASE_PASSWORD)
+          .then((userCredential) => {
+            const user = userCredential.user;
+            console.log("Firebase sign-in succeeded: user UID:", user.uid);
+            // You can now use the 'user' object for further operations
+          })
+          .catch((error) => {
+            // Handle errors during sign-in
+            console.error("Firebase sign-in failed:", error);
+          });
+        loadUserData();
         setDocList([]);
-        await firebaseSignIn();
+        // firebaseSignIn has already happened
+        // await firebaseSignIn();
         const trimmedUsername = localUsername.trim();
         if (!trimmedUsername) {
           alert("Please type a username to sign in. ");
@@ -299,24 +298,24 @@ export default function HomeScreen() {
                   <Text style={styles.listItemText}>
                     Description: {docList[docList.length - 1]["description"]}
                   </Text>
-                  {docList[docList.length - 1]["startTime"] ? (
-                    <Text>
-                      <Text style={styles.listItemText}>
-                        Started at {docList[docList.length - 1]["startTime"]
-                          .toLocaleTimeString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                      </Text>
-                      <Text style={styles.listItemText}>
-                        , scheduled to finish at {docList[docList.length - 1]["endTime"]
-                          .toLocaleTimeString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                      </Text></Text>
-                  ) : null
-                  }
+                  {docList[docList.length - 1]["startTime"] && (
+                    <Text style={styles.listItemText}>
+                      Started at {docList[docList.length - 1]["startTime"]
+                        .toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                    </Text>
+                  )}
+                  {docList[docList.length - 1]["endTime"] && (
+                    <Text style={styles.listItemText}>
+                      ...scheduled to finish at {docList[docList.length - 1]["endTime"]
+                        .toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
               <View>
