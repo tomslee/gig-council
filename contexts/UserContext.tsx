@@ -38,7 +38,7 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
   useEffect(() => {
     const signIn = async () => {
       console.log("Signing in to Firebase on app start.");
-      await signInWithEmailAndPassword(FIREBASE_AUTH, config.firebaseEmail, config.firebasePassword)
+      await signInWithEmailAndPassword(FIREBASE_AUTH, process.env.EXPO_PUBLIC_FIREBASE_EMAIL, process.env.EXPO_PUBLIC_FIREBASE_PASSWORD)
         .then((userCredential) => {
           const user = userCredential.user;
           console.log("Firebase sign-in succeeded: user UID:", user.uid);

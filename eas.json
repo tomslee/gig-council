@@ -10,18 +10,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "FIREBASE_EMAIL": "$FIREBASE_EMAIL",
-        "FIREBASE_PASSWORD": "$FIREBASE_PASSWORD"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "FIREBASE_EMAIL": "$FIREBASE_EMAIL",
-        "FIREBASE_PASSWORD": "$FIREBASE_PASSWORD"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
