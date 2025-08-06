@@ -3,7 +3,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { FIREBASE_EMAIL, FIREBASE_PASSWORD } from "@/secrets/config";
+import { FIREBASE_EMAIL, FIREBASE_PASSWORD } from "@env";
 import { FIREBASE_AUTH } from "@/lib/firebase";
 import * as SecureStore from 'expo-secure-store';
 import CrossPlatformStorage from '@/components/CrossPlatformStorage';

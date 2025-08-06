@@ -22,7 +22,7 @@ import { firestoreService } from '../../services/firestoreService';
 import HelpIcon from '../../components/HelpIcon';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment, Session } from '../../types/types';
-import { FIREBASE_EMAIL, FIREBASE_PASSWORD } from '@/secrets/config';
+import { FIREBASE_EMAIL, FIREBASE_PASSWORD } from '@env';
 // End of imports
 
 /*

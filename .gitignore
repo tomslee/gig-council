@@ -24,7 +24,6 @@ tmp/
 
 #TS API keys and so on
 expo-env.d.ts
-secrets/
 lib/config.tsx
 # Image source
 *.xcf
