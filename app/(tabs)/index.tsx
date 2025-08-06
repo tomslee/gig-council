@@ -47,23 +47,29 @@ export default function HomeScreen() {
           if (isFocused) {
             const openSessions = await firestoreService.getAllOpenSessionsByOwner(Collection.session, userData.username);
             if (userData.sessionID && openSessions && openSessions.length == 0) {
-              console.log("HomeSecreen.useEffect: local sessionID, but no open sessions in firestore");
-              // there are no open sessions in Firestore, but there is a sessionID locally. Get rid of the local sessionID
-              await saveUserData({ ...userData, sessionID: '', isOnAssignment: false });
+              console.log("HomeSecreen.useEffect: local sessionID, but no open sessions in Firestore");
+              await saveUserData({ ...userData, sessionID: '' });
             }; // openSessions && userData.sessionID
-            const assignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userData.username);
-            if (assignments) {
-              for (const assignment of assignments) {
+            if (openSessions && openSessions[0].id) {
+              console.log("HomeSecreen.useEffect: found an open session in Firestore:", openSessions[0].id);
+              await saveUserData({ ...userData, sessionID: openSessions[0].id });
+            }; // openSessions && userData.sessionID
+            const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userData.username);
+            if (openAssignments) {
+              for (const assignment of openAssignments) {
                 docList.push(assignment)
-                console.log("Fetching ", assignment.id,
-                  ", ", assignment.description,
-                  ", ", assignment.category,
-                  ", ", assignment.startTime);
+                console.log("Fetching open assignment", assignment.id,
+                  ",", assignment.description,
+                  ",", assignment.category,
+                  ",", assignment.startTime);
               };
-              console.log("HomeScreen.useEffect: fetched", docList.length, "unfinished assignments for", userData.username, ".");
-              setDocList(docList);
-              setRefresh(!refresh);
+              console.log("HomeScreen.useEffect: fetched", docList.length, "open assignments for", userData.username);
+              await saveUserData({ ...userData, isOnAssignment: true });
+            } else {
+              await saveUserData({ ...userData, isOnAssignment: false });
             };
+            setDocList(docList);
+            setRefresh(!refresh);
           }; // if isFocused
         }; // if userData.username
       } catch (error) {
@@ -75,7 +81,7 @@ export default function HomeScreen() {
       }; // try-catch
     }; // fetchAssignmentsForUser
     fetchSessionsAndAssignmentsForUser();
-  }, [isFocused, userData]);
+  }, [isFocused]);
 
   const goToAddAssignment = () => {
     router.navigate({
@@ -169,7 +175,7 @@ export default function HomeScreen() {
               ", ", assignment.category,
               ", ", assignment.startTime);
           };
-          console.log("Fetched", docList.length, "unfinished assignments for", userData.username, ".");
+          console.log("HomeScreen.appSignIn: fetched", docList.length, "open assignments for", userData.username, ".");
           setDocList(docList);
           // Now save the userData with the proper settings, for later 
           if (docList.length > 0) {
