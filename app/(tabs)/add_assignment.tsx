@@ -34,10 +34,10 @@ export default function AddAssignment() {
   const { assignmentID } = useLocalSearchParams<{ assignmentID: string }>();
   const isReturningFromNavigation = useRef(false);
 
-
   const handleInputChange = (field: string, value: string) => {
     if (value) {
       if (field == 'endTime') {
+        // endTime validation is a special case
         try {
           const valueDate = new Date(
             formAssignment.startTime ? formAssignment.startTime.getFullYear() : new Date().getFullYear(),
@@ -190,7 +190,18 @@ export default function AddAssignment() {
       } catch (e) {
         console.error('Error deleting assignment: ', e);
       };
-      router.back(); // Navigate to the place it was launched from 
+      const fromTimeline = formAssignment.endTime;
+      if (fromTimeline) {
+        // must have come from the timeline
+        isReturningFromNavigation.current = true;
+        // We navigated to this page from an edit. Clean the parameters before leaving.
+        // router.replace('/(tabs)/add_assignment');
+        router.replace('/(tabs)/timeline');
+      } else {
+        // go home
+        isReturningFromNavigation.current = false;
+        router.replace('/');
+      };
     };
   };
 
