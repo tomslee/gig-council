@@ -3,7 +3,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { FIREBASE_EMAIL, FIREBASE_PASSWORD } from "@env";
+import config from '@/config/env';
 import { FIREBASE_AUTH } from "@/lib/firebase";
 import * as SecureStore from 'expo-secure-store';
 import CrossPlatformStorage from '@/components/CrossPlatformStorage';
@@ -38,7 +38,7 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
   useEffect(() => {
     const signIn = async () => {
       console.log("Signing in to Firebase on app start.");
-      await signInWithEmailAndPassword(FIREBASE_AUTH, FIREBASE_EMAIL, FIREBASE_PASSWORD)
+      await signInWithEmailAndPassword(FIREBASE_AUTH, config.firebaseEmail, config.firebasePassword)
         .then((userCredential) => {
           const user = userCredential.user;
           console.log("Firebase sign-in succeeded: user UID:", user.uid);

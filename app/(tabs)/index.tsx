@@ -22,7 +22,8 @@ import { firestoreService } from '../../services/firestoreService';
 import HelpIcon from '../../components/HelpIcon';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment, Session } from '../../types/types';
-import { FIREBASE_EMAIL, FIREBASE_PASSWORD } from '@env';
+import config from '@/config/env';
+
 // End of imports
 
 /*
@@ -132,7 +133,7 @@ export default function HomeScreen() {
       if (userData) {
         setLoading(true);
         console.log("HomeScreen.appSignIn: signing in to Firebase.");
-        await signInWithEmailAndPassword(FIREBASE_AUTH, FIREBASE_EMAIL, FIREBASE_PASSWORD)
+        await signInWithEmailAndPassword(FIREBASE_AUTH, config.firebaseEmail, config.firebasePassword)
           .then((userCredential) => {
             const user = userCredential.user;
             console.log("Firebase sign-in succeeded: user UID:", user.uid);
