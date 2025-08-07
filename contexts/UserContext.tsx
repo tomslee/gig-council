@@ -12,7 +12,7 @@ export interface UserData {
   username: string,
   defaultUsername: string,
   sessionID: string,
-  isOnAssignment: boolean,
+  assignmentID: string,
 };
 
 interface UserContextType {
@@ -48,33 +48,25 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
           // Handle errors during sign-in
           console.error("Firebase sign-in failed:", error);
         });
-      loadUserData();
+      // console.log("Loading userData on app start.")
+      // await loadUserData();
     };
     signIn();
   }, []);
 
   const loadUserData = async () => {
     try {
-      console.log("Loading userData on app start.")
       const storedUsername = "";
-      /*
-      const storedDefaultUsername = await SecureStore.getItemAsync("_defaultUsername");
-      const storedSessionID = await SecureStore.getItemAsync("_sessionID");
-      const storedIsOnAssignment = (SecureStore.getItem("_isOnAssignment") === "true");
-      */
       const storedDefaultUsername = await CrossPlatformStorage.getItem("_defaultUsername");
       const storedSessionID = await CrossPlatformStorage.getItem("_sessionID");
-      const storedIsOnAssignment = (await CrossPlatformStorage.getItem("_isOnAssignment") === "true");
-      const storedUserData: UserData = {
+      const storedAssignmentID = await CrossPlatformStorage.getItem("_assignmentID");
+      const updatedUserData: UserData = {
         username: storedDefaultUsername ? storedDefaultUsername : "",
         defaultUsername: storedDefaultUsername ? storedDefaultUsername : "",
         sessionID: storedSessionID ? storedSessionID : "",
-        isOnAssignment: storedIsOnAssignment,
+        assignmentID: storedAssignmentID ? storedAssignmentID : "",
       }
-      if (storedUserData) {
-        setUserData(storedUserData);
-        console.log("UserContext:loadUserData: setting storedUserData", storedUserData);
-      };
+      setUserData(updatedUserData);
     } catch (error) {
       console.error('Error loading userData:', error);
     } finally {
@@ -88,12 +80,11 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
       await SecureStore.setItemAsync('_username', newUserData.username);
       await SecureStore.setItemAsync('_defaultUsername', newUserData.defaultUsername);
       await SecureStore.setItemAsync('_sessionID', newUserData.sessionID);
-      await SecureStore.setItemAsync('_isOnAssignment', newUserData.isOnAssignment.toString());
       */
       await CrossPlatformStorage.setItem('_username', newUserData.username);
       await CrossPlatformStorage.setItem('_defaultUsername', newUserData.defaultUsername);
       await CrossPlatformStorage.setItem('_sessionID', newUserData.sessionID);
-      await CrossPlatformStorage.setItem('_isOnAssignment', newUserData.isOnAssignment.toString());
+      await CrossPlatformStorage.setItem('_assignmentID', newUserData.assignmentID);
 
       setUserData(newUserData);
     } catch (error) {
@@ -115,7 +106,7 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
       await SecureStore.deleteItemAsync('_username');
       await SecureStore.deleteItemAsync('_defaultUsername');
       await SecureStore.deleteItemAsync('_sessionID');
-      await SecureStore.deleteItemAsync('_isOnAssignment');
+      await SecureStore.deleteItemAsync('_assignmentID');
       setUserData(null);
     } catch (error) {
       console.error('Error clearing userData:', error);

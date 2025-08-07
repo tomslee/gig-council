@@ -11,9 +11,10 @@ import {
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore';
-import { FIREBASE_AUTH, FIRESTORE_DB } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { Assignment, Session } from '../types/types';
+import { FIREBASE_AUTH, FIRESTORE_DB } from '@/lib/firebase';
+import { Assignment, Session } from '@/types/types';
+import { timelineUtils } from '@/lib/timelineUtils';
 
 const waitForAuth = (): Promise<User | null> => {
   return new Promise((resolve) => {
@@ -53,7 +54,7 @@ export const firestoreService = {
   async getAllOpenAssignmentsByOwner(collectionName: string, owner: string) {
     try {
       // Rewriting to filter on the client, because of Firestore indexing limitations
-      // and problems
+      // and problems.
       // Wait for auth state to be definitely ready
       const currentUser = await waitForAuth();
       if (!currentUser) {
@@ -117,7 +118,7 @@ export const firestoreService = {
       const docRef = await addDoc(collectionRef, {
         ...newAssignment,
       });
-      console.log(`Created assignment id=`, docRef.id);
+      console.log(`Created assignment: id=`, docRef.id);
       return {
         id: docRef.id,
         ...newAssignment,
@@ -157,14 +158,19 @@ export const firestoreService = {
       if (!currentUser) {
         throw new Error('Not authenticated');
       }
+      // get the assignment document reference
       const docRef = doc(collection(FIRESTORE_DB, collectionName),
         assignment.id);
+      // set the endTime to 'now' as it is being closed 
       const endTime = new Date();
+      // set the star rating
+      const rating = timelineUtils.assignStarRating();
       await updateDoc(docRef, {
         ...assignment,
         endTime: endTime,
+        rating: rating,
       });
-      console.log('Assignment ', assignment.id, 'closed');
+      console.log('Assignment ', assignment.id, 'closed. Rating =', rating);
 
       return {
         ...assignment,

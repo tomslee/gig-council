@@ -17,12 +17,14 @@ import {
   Platform
 } from 'react-native';
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { FIREBASE_AUTH } from '../../lib/firebase';
-import { firestoreService } from '../../services/firestoreService';
-import HelpIcon from '../../components/HelpIcon';
+import { FIREBASE_AUTH } from '@/lib/firebase';
+import { firestoreService } from '@/services/firestoreService';
+import HelpIcon from '@/components/HelpIcon';
 import { Ionicons } from '@expo/vector-icons';
-import { Collection, Assignment, Session } from '../../types/types';
+import { Collection, Assignment, MINIMUM_HOURLY_WAGE, Session } from '@/types/types';
 import config from '@/config/env';
+import AssignmentItem from '@/components/AssignmentItem';
+import { doc } from 'firebase/firestore';
 
 // End of imports
 
@@ -44,37 +46,48 @@ export default function HomeScreen() {
       // Get any open assignments for the user
       try {
         setDocList([]);
+        console.log("loading userData on isFocused useEffect")
+        await loadUserData();
         if (userData && userData.username) {
+          console.log("isFocused useEffect: userData.username", userData.username);
           if (isFocused) {
             const openSessions = await firestoreService.getAllOpenSessionsByOwner(Collection.session, userData.username);
             if (userData.sessionID && openSessions && openSessions.length == 0) {
-              console.log("HomeSecreen.useEffect: local sessionID, but no open sessions in Firestore");
+              console.log("isFocused useEffect: local sessionID, but no open sessions");
               await saveUserData({ ...userData, sessionID: '' });
             }; // openSessions && userData.sessionID
             if (openSessions && openSessions[0].id) {
-              console.log("HomeSecreen.useEffect: found an open session in Firestore:", openSessions[0].id);
+              console.log("isFocused useEffect: fetched an open session:", openSessions[0].id);
               await saveUserData({ ...userData, sessionID: openSessions[0].id });
             }; // openSessions && userData.sessionID
             const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userData.username);
             if (openAssignments) {
               for (const assignment of openAssignments) {
                 docList.push(assignment)
-                console.log("Fetching open assignment", assignment.id,
-                  ",", assignment.description,
-                  ",", assignment.category,
-                  ",", assignment.startTime);
+                console.log("Fetched open assignment", assignment.id);
               };
-              console.log("HomeScreen.useEffect: fetched", docList.length, "open assignments for", userData.username);
-              await saveUserData({ ...userData, isOnAssignment: true });
+              console.log("isFocused useEffect: fetched", docList.length, "open assignments for", userData.username);
+            };
+            if (docList.length > 0) {
+              const activeAssignmentID = docList[0].id ? docList[0].id : '';
+              await saveUserData({
+                ...userData,
+                assignmentID: activeAssignmentID,
+              });
             } else {
-              await saveUserData({ ...userData, isOnAssignment: false });
+              await saveUserData({
+                ...userData,
+                assignmentID: '',
+              });
             };
             setDocList(docList);
             setRefresh(!refresh);
           }; // if isFocused
+        } else {
+          console.log("fetchSessionsAndAssignmentsForUser: no userData.username.");
         }; // if userData.username
       } catch (error) {
-        console.error("Error retrieving assignments:", error);
+        console.error("HomeScreen.useEffect: error retrieving assignments:", error);
       } finally {
         setLocalUsername(userData ? userData.defaultUsername : '');
         setLoading(false);
@@ -158,8 +171,8 @@ export default function HomeScreen() {
         const newUserData: UserData = {
           username: trimmedUsername,
           defaultUsername: trimmedUsername,
-          sessionID: "",
-          isOnAssignment: false,
+          sessionID: '',
+          assignmentID: '',
         };
         const newSession: Session = {
           owner: newUserData.username,
@@ -176,14 +189,22 @@ export default function HomeScreen() {
               ", ", assignment.category,
               ", ", assignment.startTime);
           };
-          console.log("HomeScreen.appSignIn: fetched", docList.length, "open assignments for", userData.username, ".");
+          console.log("HomeScreen.appSignIn: fetched", docList.length, "open assignments for", newUserData.username, ".");
           setDocList(docList);
           // Now save the userData with the proper settings, for later 
-          if (docList.length > 0) {
-            await saveUserData({ ...newUserData, sessionID: session.id, isOnAssignment: true });
+          if (docList.length > 0 && docList[0].id) {
+            await saveUserData({
+              ...newUserData,
+              sessionID: session.id,
+              assignmentID: docList[0].id,
+            });
           } else {
-            await saveUserData({ ...newUserData, sessionID: session.id, isOnAssignment: false });
-          };
+            await saveUserData({
+              ...newUserData,
+              sessionID: session.id,
+              assignmentID: '',
+            });
+          }
         };
         setRefresh(!refresh);
         setLoading(false);
@@ -198,12 +219,12 @@ export default function HomeScreen() {
     try {
       if (userData && userData.username) {
         await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
-        await updateUserData({ isOnAssignment: false });
+        await updateUserData({ assignmentID: '' });
         setDocList([]);
         console.log("All assignments closed");
       };
     } catch (error) {
-      console.error("Error closing assignments. ", error);
+      console.error("HomeScreen.closeAssignments: Error closing assignments. ", error);
     };
   };
 
@@ -289,7 +310,7 @@ export default function HomeScreen() {
             </View>
           ) : null}
 
-          {/* Open assignments */}
+          {/* diaplay open assignments */}
           {(userData && userData.username && userData.sessionID && docList && docList.length > 0) ? (
             <View style={styles.formSection}>
               {/* console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString()) */}
@@ -298,7 +319,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.assignmentContainer}>
                 <TouchableOpacity
-                  onPress={() => openAssignmentForEdit(docList[docList.length - 1]["id"])} >
+                  onPress={() => openAssignmentForEdit(docList[docList.length - 1].id)} >
                   <Text style={styles.listItemText}>
                     Category: {docList[docList.length - 1]["category"]}
                   </Text>
@@ -307,7 +328,7 @@ export default function HomeScreen() {
                   </Text>
                   {docList[docList.length - 1]["startTime"] && (
                     <Text style={styles.listItemText}>
-                      Started at {docList[docList.length - 1]["startTime"]
+                      Started at {docList[docList.length - 1].startTime
                         .toLocaleTimeString(undefined, {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -316,13 +337,17 @@ export default function HomeScreen() {
                   )}
                   {docList[docList.length - 1]["endTime"] && (
                     <Text style={styles.listItemText}>
-                      ...scheduled to finish at {docList[docList.length - 1]["endTime"]
+                      ...scheduled to finish at {docList[docList.length - 1].endTime
                         .toLocaleTimeString(undefined, {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
                     </Text>
                   )}
+                  <Text style={styles.listItemText}>
+                    Your pay rate: ${(docList[docList.length - 1].payRateFactor ?
+                      (docList[docList.length - 1].payRateFactor! * MINIMUM_HOURLY_WAGE) : MINIMUM_HOURLY_WAGE)?.toFixed(2)}/hr.
+                  </Text>
                 </TouchableOpacity>
               </View>
               <View>
@@ -336,7 +361,7 @@ export default function HomeScreen() {
           ) : null}
 
           {/* Start an assignment Button */}
-          {(userData && userData.sessionID && !userData.isOnAssignment) ? (
+          {(userData && userData.sessionID && !userData.assignmentID) ? (
             <View style={styles.formSection}>
               <Text style={styles.bannerText} >You are online and available for work assignments.</Text>
               <TouchableOpacity
@@ -358,13 +383,13 @@ export default function HomeScreen() {
                 style={styles.saveButton}
                 onPress={appSignOut} >
                 {docList.length > 0 ? (
-                  <Text style={styles.saveButtonText}>Close assignment and sign out of work</Text>
+                  <Text style={styles.saveButtonText}>Close assignment and sign out</Text>
                 ) : (
-                  <Text style={styles.saveButtonText}>Sign out of work</Text>
+                  <Text style={styles.saveButtonText}>Sign out</Text>
                 )}
               </TouchableOpacity>
-              <Text style={styles.text}>You will automatically be signed out at 5pm,
-                or one hour after your session start time, whichever is later.</Text>
+              <Text style={styles.comment}>You will be signed out automatically at 5pm,
+                or one hour after you signed in, whichever is later.</Text>
             </View>
           ) : null}
 
@@ -407,6 +432,9 @@ const styles = StyleSheet.create({
   },
   text: {
   },
+  comment: {
+    paddingHorizontal: 8,
+  },
   flatList: {
     padding: 10,
     marginTop: 20,
@@ -416,7 +444,7 @@ const styles = StyleSheet.create({
   },
   listItemText: {
     fontSize: 16,
-    fontWeight: '600',
+    // fontWeight: '600',
   },
   labelRow: {
     flexDirection: 'row',

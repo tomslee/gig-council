@@ -114,13 +114,14 @@ export default function AddAssignment() {
           category: formAssignment.category,
           startTime: new Date(),
           endTime: thirtyMinutesFromNow,
+          payRateFactor: timelineUtils.assignPayRateFactor(),
         };
-        console.log("Creating new assignment:", activeAssignment);
-        await firestoreService.createAssignment(Collection.assignment, activeAssignment);
-        updateUserData({ isOnAssignment: true });
+        const newAssignment: Assignment = await firestoreService.createAssignment(Collection.assignment, activeAssignment);
+        console.log("Created assignment:", activeAssignment.id);
+        updateUserData({ assignmentID: newAssignment.id });
       };
     } catch (e) {
-      console.error('Error adding assignment: ', e);
+      console.error('AddAssignment.addAssignment: error creating assignment: ', e);
     };
     // Re-initialize the form data
     try {
