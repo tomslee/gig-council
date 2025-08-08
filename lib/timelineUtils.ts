@@ -1,22 +1,14 @@
 /*
  * A set of functions for ensuring appropriate start and end times for assignments and sessions
  */
-import { UserData, useUserContext } from '@/contexts/UserContext';
-//const [docList, setDocList] = useState<any>([]);
+import { UserName } from '@/contexts/UserContext';
 import { firestoreService } from '@/services/firestoreService';
-import { Assignment, AssignmentSection, Collection, CATEGORIES, CategoryInfo, PayReport, Session, StatisticsByDate, StatisticsSection } from '@/types/types';
+import {
+    Assignment, AssignmentSection, Collection, CATEGORIES, CategoryInfo,
+    MINIMUM_HOURLY_WAGE, PayReport, Session, StatisticsByDate, StatisticsSection
+} from '@/types/types';
 import 'react-native-get-random-values';
-import { executeNativeBackPress } from 'react-native-screens';
 import { v4 as uuidv4 } from 'uuid';
-
-class SessionInfo {
-    minutes: number;
-    sessions: number;
-    constructor(data: { minutes: number; sessions: number }) {
-        this.minutes = data.minutes;
-        this.sessions = data.sessions;
-    }
-};
 
 const createEmptyCategoryInfo = (): CategoryInfo => {
     return CATEGORIES.reduce((acc, category) => {
@@ -26,6 +18,7 @@ const createEmptyCategoryInfo = (): CategoryInfo => {
 };
 
 const groupAssignmentsByDate = (assignments: Assignment[]): AssignmentSection[] => {
+    // for timeline display
     const grouped = assignments.reduce((acc, assignment) => {
         if (assignment.startTime) {
             const t = new Date(assignment.startTime.getTime());
@@ -73,6 +66,14 @@ function combineAggregates(
                     groupedAssignments[date][0].assignmentMinutes : 0,
                 paidMinutes: groupedAssignments[date] ?
                     groupedAssignments[date][0].paidMinutes : 0,
+                assignmentCount: groupedAssignments[date] ?
+                    groupedAssignments[date][0].assignmentCount : 0,
+                ratingSum: groupedAssignments[date] ?
+                    groupedAssignments[date][0].ratingSum : 0,
+                ratingCount: groupedAssignments[date] ?
+                    groupedAssignments[date][0].ratingCount : 0,
+                totalPay: groupedAssignments[date] ?
+                    groupedAssignments[date][0].totalPay : 0,
             },];
             result[date] = stats;
         });
@@ -99,24 +100,35 @@ const groupStatisticsByDate = (assignments: Assignment[], sessions: Session[]):
                         sessionMinutes: 0,
                         assignmentMinutes: 0,
                         paidMinutes: 0,
+                        assignmentCount: 0,
+                        ratingSum: 0,
+                        ratingCount: 0,
+                        totalPay: 0,
+
                     });
                 }
             };
-            if (assignment.endTime) {
+            if (assignment.endTime && (assignment.endTime < new Date())) {
+                // only count closed assignments
                 const assignmentMinutes = Math.abs(assignment.endTime.getTime() - assignment.startTime.getTime()) / (60 * 1000.0) || 0;
                 acc[assignmentDate][0].assignmentMinutes += assignmentMinutes;
+                acc[assignmentDate][0].assignmentCount += 1;
+                acc[assignmentDate][0].ratingSum += assignment.rating ? assignment.rating : 0;
+                acc[assignmentDate][0].ratingCount += assignment.rating ? 1 : 0;
                 const thisCategory = CATEGORIES.find(item => item["label"] === assignment.category) || {};
                 if ("label" in thisCategory && "payable" in thisCategory) {
                     if (thisCategory["payable"]) {
                         acc[assignmentDate][0].paidMinutes += assignmentMinutes;
+                        const factor = assignment.payRateFactor ? assignment.payRateFactor : 1.0;
+                        acc[assignmentDate][0].totalPay += assignmentMinutes * (factor * MINIMUM_HOURLY_WAGE) / 60.0;
                     } else {
                     };
                 };
             };
-        };
+        }; // if (assignment.startTime)
         return acc;
-    },
-        {} as Record<string, StatisticsByDate[]>);
+    }, {} as Record<string, StatisticsByDate[]>);
+    // Now do sessions
     const groupedSessions = sessions.reduce((acc, session) => {
         if (session.startTime) {
             const t = new Date(session.startTime.getTime());
@@ -144,6 +156,7 @@ const groupStatisticsByDate = (assignments: Assignment[], sessions: Session[]):
     },
         {} as Record<string, StatisticsByDate[]>);
     const mergedStatistics = combineAggregates(groupedAssignments, groupedSessions);
+    console.log("Computed reports.")
     return Object.entries(mergedStatistics).map(([title, data]) => ({
         title,
         data
@@ -152,7 +165,7 @@ const groupStatisticsByDate = (assignments: Assignment[], sessions: Session[]):
 
 export const timelineUtils = {
 
-    async getReport(userData: UserData, earliestDate: Date = new Date('1970-01-01')) {
+    async getReport(userName: UserName, earliestDate: Date = new Date('1970-01-01')) {
         let docList = [];
         let newReport: PayReport = {
             totalSessions: 0,
@@ -164,7 +177,7 @@ export const timelineUtils = {
             categoryInfo: createEmptyCategoryInfo(),
             categorySections: {},
             assignmentsByDate: {},
-            statisticsByDate: {},
+            statisticsByDate: [],
         };
         for (const category of CATEGORIES) {
             newReport.categoryInfo[category.label].minutes = 0;
@@ -174,7 +187,7 @@ export const timelineUtils = {
         try {
             const sessions = await firestoreService.getAllSessionsByOwner(
                 Collection.session,
-                userData.username);
+                userName.username);
             if (sessions) {
                 for (const session of sessions) {
                     if (session.startTime && session.startTime >= earliestDate) {
@@ -193,7 +206,7 @@ export const timelineUtils = {
             // fetch assignments
             const assignments = await firestoreService.getAllAssignmentsByOwner(
                 Collection.assignment,
-                userData.username);
+                userName.username);
             if (assignments) {
                 for (const assignment of assignments) {
                     if (assignment.category == '' ||
@@ -245,16 +258,16 @@ export const timelineUtils = {
         };
     },
 
-    async getValidEndTime(userData: UserData, candidateAssignment: Assignment) {
-        if (userData &&
-            userData.username &&
+    async getValidEndTime(userName: UserName, candidateAssignment: Assignment) {
+        if (userName &&
+            userName.username &&
             candidateAssignment.startTime &&
             candidateAssignment.endTime) {
             if (candidateAssignment.endTime <= candidateAssignment.startTime) {
                 // an assignment must end after it starts
                 candidateAssignment.endTime = new Date(candidateAssignment.startTime.getTime() + (10 * 60 * 1000));
             }
-            const assignments = await firestoreService.getAllAssignmentsByOwner(Collection.assignment, userData.username);
+            const assignments = await firestoreService.getAllAssignmentsByOwner(Collection.assignment, userName.username);
             if (assignments) {
                 for (const assignment of assignments) {
                     if (assignment.id != candidateAssignment.id &&
@@ -274,9 +287,81 @@ to avoid an overlap with another assignment. You can only work one assignment at
                 return candidateAssignment.endTime;
             };
         } else {
-            //Something is wrong with the candidateAssignment or the userData
+            //Something is wrong with the candidateAssignment or the userName
             return null;
         };
         return null;
+    },
+
+    assignPayRateFactor(category: string | undefined): number {
+        const thisCategory = CATEGORIES.find(item => item["label"] === category) || {};
+        let payFactor: number = 0;
+        if ("label" in thisCategory && "payable" in thisCategory) {
+            if (thisCategory["payable"]) {
+                const x = Math.floor(100.0 * Math.random());
+                switch (true) {
+                    case (x < 74.5): // [0, 74] (75)
+                        payFactor = 0.9;
+                        break;
+                    case (x < 84.5): // [75, 84] (10)
+                        payFactor = 1.5; // surge
+                        break;
+                    default:
+                        payFactor = 0.75; // [85, 99] (15)
+                        break;
+                };
+            } else {
+                return 0;
+            };
+            alert("Your pay rate for this assignment has been set to $" + (payFactor * MINIMUM_HOURLY_WAGE).toFixed(2) + " per hour.");
+            return payFactor;
+        } else {
+            return 0;
+        };
+    },
+
+    assignStarRating(): number {
+        // assigns a one to 5 star rating for an assignment.
+        // generate an integer from 0 to 9 inclusive
+        const x = Math.floor(100.0 * Math.random());
+        switch (true) {
+            case (x < 74.5): // [0, 74] (75)
+                return 5;
+                break;
+            case (x < 84.5): // [75, 84] (10)
+                return 4;
+                break;
+            case (x < 94.5): // [85, 94] (10)
+                return 1;
+                break;
+            case (x < 97.5): // [95, 97] (3)
+                return 3;
+                break;
+            default:
+                return 2; //[98, 99] (2)
+                break;
+        };
+    },
+
+    getWeekNumber(date: Date): number {
+        // Copying date so the original date won't be modified
+        const tempDate = new Date(date.valueOf());
+        // ISO week date weeks start on Monday, so correct the day number
+        const dayNum = (date.getDay() + 6) % 7;
+        // Set the target to the nearest Thursday (current date + 4 - current day number)
+        tempDate.setDate(tempDate.getDate() - dayNum + 3);
+        // ISO 8601 week number of the year for this date
+        const firstThursday = tempDate.valueOf();
+        // Set the target to the first day of the year
+        // First set the target to January 1st
+        tempDate.setMonth(0, 1);
+        // If this is not a Thursday, set the target to the next Thursday
+        if (tempDate.getDay() !== 4) {
+            tempDate.setMonth(0, 1 + ((4 - tempDate.getDay()) + 7) % 7);
+        }
+        // The weeknumber is the number of weeks between the first Thursday of the year
+        // and the Thursday in the target week
+        return 1 + Math.ceil((firstThursday - tempDate.valueOf()) / (7 * 24 * 60 * 60 * 1000)); // 604800000 = number of milliseconds in a week
     }
+
 };

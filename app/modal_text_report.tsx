@@ -3,14 +3,16 @@ import { router } from 'expo-router';
 import { KeyboardAvoidingView, Platform, Linking, StyleSheet, SafeAreaView, ScrollView, StatusBar, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StatisticsByDate } from '@/types/types';
+import { MINIMUM_HOURLY_WAGE, StatisticsByDate } from '@/types/types';
 import { useStatistics } from '@/contexts/StatisticsContext';
 
 export default function TextReport() {
     const isPresented = router.canGoBack();
     const insets = useSafeAreaInsets();
     const { currentStatistics } = useStatistics();
-    const { id, date, sessionMinutes, assignmentMinutes, paidMinutes } = currentStatistics;
+    const { id, date, sessionMinutes, assignmentMinutes, paidMinutes,
+        assignmentCount, ratingSum, ratingCount, totalPay
+    } = currentStatistics;
 
     return (
         <SafeAreaView style={styles.safeAreaView}>
@@ -36,46 +38,51 @@ export default function TextReport() {
                 <ScrollView style={styles.scrollview}
                     contentContainerStyle={styles.scrollContent}>
                     <Text style={styles.h1}>
-                        Your pay today (before expenses)
+                        Your pay for the day (before expenses)
                     </Text>
                     <Text style={styles.paragraph}>
-                        You made ${(17.20 * paidMinutes / 60).toFixed(2)}, which is...
+                        You earned a total of ${totalPay.toFixed(2)}, at a rate of...
                     </Text>
                     <Text style={styles.paragraph}>
-                        $17.20 per hour of "engaged time"
+                        ${(totalPay * 60.0 / paidMinutes).toFixed(2)} per hour of "engaged time"
                     </Text>
                     <Text style={styles.paragraph}>
-                        ${(17.20 * paidMinutes / assignmentMinutes).toFixed(2)} per hour on all assignments.
+                        ${(totalPay * 60.0 / assignmentMinutes).toFixed(2)} per hour on all assignments.
                     </Text>
                     <Text style={styles.paragraph}>
-                        ${(17.20 * paidMinutes / sessionMinutes).toFixed(2)} per hour online.
+                        ${(totalPay * 60.0 / sessionMinutes).toFixed(2)} per hour online.
+                    </Text>
+                    <Text style={styles.paragraph}>
+                        Read on for a little more detail...
                     </Text>
                     <Text style={styles.h1}>
                         Congratulations!
                     </Text>
                     <Text style={styles.paragraph}>
                         On {date}, you spent
-                        <Text style={{ fontWeight: 'bold' }}> {paidMinutes.toFixed()} minutes</Text> engaged in paid assignments.
+                        <Text style={{ fontWeight: 'bold' }}> {Math.floor(paidMinutes / 60).toFixed()}h:{(paidMinutes % 60).toFixed()}m</Text> in "engaged time"
+                        carrying out paid assignments.
                         Thanks to the Ontario Digital Platform Workers' Rights Act, you are guaranteed a minimum
-                        wage of $17.20 / hour for those minutes, for a total of
-                        <Text style={{ fontWeight: 'bold' }}> ${(17.20 * paidMinutes / 60).toFixed(2)}!</Text>
+                        wage of <Text style={{ fontWeight: 'bold' }} >${MINIMUM_HOURLY_WAGE.toFixed(2)} per hour</Text> for those minutes. In fact you earned a total of
+                        <Text style={{ fontWeight: 'bold' }}> ${totalPay.toFixed(2)}!</Text>
                     </Text>
                     {(assignmentMinutes > paidMinutes) &&
                         <Text style={styles.paragraph}>
                             You also spent
-                            <Text style={{ fontWeight: 'bold' }}> {(assignmentMinutes - paidMinutes).toFixed()}&nbsp;minutes </Text>
+                            <Text style={{ fontWeight: 'bold' }}> {Math.floor((assignmentMinutes - paidMinutes) / 60).toFixed()}h:
+                                {((assignmentMinutes - paidMinutes) % 60).toFixed()}m </Text>
                             on unpaid assignments, like office work and administrative tasks.
-                            Even though you won't get paid for that time, we love that you're investing in your future, ensuring that you present
+                            Counting that time, your pay rate was
+                            <Text style={{ fontWeight: 'bold' }}> ${(totalPay * 60.0 / assignmentMinutes).toFixed(2)} per hour. </Text>
+                            That's not as much, but we do love that you're investing in your future, ensuring that you present
                             your best self to your constituents and to the City of Toronto.
                         </Text>}
                     <Text style={styles.paragraph}>
-                        You did spend <Text style={{ fontWeight: 'bold' }}>{sessionMinutes.toFixed()} minutes</Text> signed on and
-                        available for work. Even though you won't get paid for much of that time, it is great to know you were available for your
+                        Over the day, you spent a total of <Text style={{ fontWeight: 'bold' }}>{Math.floor(sessionMinutes / 60).toFixed()}h:{(sessionMinutes % 60).toFixed()}m</Text> signed on and
+                        available for work, and the pay rate over that time was
+                        <Text style={{ fontWeight: 'bold' }}> ${(totalPay * 60.0 / sessionMinutes).toFixed(2)} per hour. </Text>
+                        Even though you weren't paid for much of your time, it is great to know you were available for your
                         constituents and coworkers in case anyone needed you.
-                    </Text>
-                    <Text style={styles.paragraph}>
-                        Your earnings were
-                        <Text style={{ fontWeight: 'bold' }} > ${(17.20 * paidMinutes / sessionMinutes).toFixed(2)} per hour online!</Text>
                     </Text>
                     <Text style={styles.paragraph}>
                         And of course you know that that's before your expenses of office rental, IT resources, phone, supply and maintenance of your equipment,

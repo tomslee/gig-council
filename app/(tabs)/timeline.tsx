@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useIsFocused } from "@react-navigation/native";
 import SectionHeader from '@/components/SectionHeader';
-import { Assignment, Collection, CATEGORIES, CategoryInfo, PayReport } from '@/types/types';
+import { Assignment, Collection, CATEGORIES, CategoryInfo, PayReport, MINIMUM_HOURLY_WAGE } from '@/types/types';
 import { useUserContext } from '@/contexts/UserContext';
 import { timelineUtils } from '@/lib/timelineUtils';
 
@@ -22,7 +22,7 @@ export default function TimelineScreen() {
     const [loading, setLoading] = useState(true);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
-    const { userData } = useUserContext();
+    const { userName, userData } = useUserContext();
     const router = useRouter();
 
     function convertMinutesToHoursAndMinutes(totalMinutes: number): { hours: number; minutes: number } {
@@ -55,9 +55,9 @@ export default function TimelineScreen() {
     useEffect(() => {
         // fetch the assignments for this user and construct the report
         const constructReport = async () => {
-            if (isFocused && userData) {
+            if (isFocused && userName) {
                 try {
-                    const newReport = await timelineUtils.getReport(userData);
+                    const newReport = await timelineUtils.getReport(userName);
                     if (newReport) {
                         setPayReport(newReport);
                         setRefresh(!refresh);
@@ -79,7 +79,7 @@ export default function TimelineScreen() {
         })
     };
 
-    const displayItem = ({ id, category, description, startTime, endTime }: Assignment) => (
+    const displayItem = ({ id, category, description, startTime, endTime, rating, payRateFactor }: Assignment) => (
         <TouchableOpacity
             style={styles.reportItem}
             onPress={() => openAssignmentForEdit(id)}
@@ -98,6 +98,8 @@ export default function TimelineScreen() {
                     <Text style={styles.text}>In progress, started at {startTime?.toLocaleDateString('en-CA',
                         { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}</Text>
                 )}
+            {rating && (<Text style={styles.text}>Rating: {rating} stars</Text>)}
+            {<Text style={styles.text}>Pay rate: ${(payRateFactor ? payRateFactor * MINIMUM_HOURLY_WAGE : MINIMUM_HOURLY_WAGE).toFixed(2)}/hr</Text>}
         </TouchableOpacity>
     );
 

@@ -8,6 +8,8 @@ export const CATEGORIES = [
     { id: 'catadmin', label: 'Admin', payable: false },
 ];
 
+export const MINIMUM_HOURLY_WAGE: number = 17.20;
+
 export enum Collection {
     assignment = "assignment",
     session = "session",
@@ -20,6 +22,8 @@ export interface Assignment {
     category?: string;
     startTime: Date | null;
     endTime: Date | null;
+    rating: number | null; // one star to five stars
+    payRateFactor?: number // default should be 1. But algorithmic pay changes this 
 };
 
 export interface Session {
@@ -35,6 +39,10 @@ export interface StatisticsByDate {
     sessionMinutes: number;
     assignmentMinutes: number;
     paidMinutes: number;
+    assignmentCount: number;
+    ratingSum: number;
+    ratingCount: number;
+    totalPay: number;
 }
 
 // Define the Section interface that SectionList expects
@@ -59,7 +67,7 @@ export interface PayReport {
     "categoryInfo": CategoryInfo;
     "categorySections": {};
     "assignmentsByDate": {};
-    "statisticsByDate": StatisticsSection[];
+    "statisticsByDate": [];
 };
 
 

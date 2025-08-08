@@ -17,13 +17,13 @@ import { Assignment, CATEGORIES, Collection, CategoryInfo, PayReport, Statistics
 import { useUserContext } from '@/contexts/UserContext';
 import { useStatistics } from '@/contexts/StatisticsContext';
 import { timelineUtils } from '@/lib/timelineUtils';
-import InfoIcon from '../../components/InfoIcon';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
-    const { userData } = useUserContext();
+    const { userName, userData } = useUserContext();
     const router = useRouter();
     const [docList, setDocList] = useState<any>([]);
     const { setCurrentStatistics } = useStatistics();
@@ -66,9 +66,9 @@ export default function ReportScreen() {
     useEffect(() => {
         // fetch the assignments for this user and construct the report
         const constructReport = async () => {
-            if (isFocused && userData) {
+            if (isFocused && userName) {
                 try {
-                    const newReport = await timelineUtils.getReport(userData, midnightLastNight);
+                    const newReport = await timelineUtils.getReport(userName, midnightLastNight);
                     if (newReport) {
                         setPayReport(newReport);
                         setRefresh(!refresh);
@@ -93,35 +93,50 @@ export default function ReportScreen() {
         </View>
     );
 
-    const displayTextReport = ({ id, date, sessionMinutes, assignmentMinutes, paidMinutes }: StatisticsByDate) => {
-        setCurrentStatistics({ id, date, sessionMinutes, assignmentMinutes, paidMinutes });
+    const displayTextReport = ({ id, date, sessionMinutes,
+        assignmentMinutes, paidMinutes,
+        assignmentCount, ratingSum, ratingCount, totalPay }: StatisticsByDate) => {
+        setCurrentStatistics({
+            id, date, sessionMinutes, assignmentMinutes, paidMinutes,
+            assignmentCount, ratingSum, ratingCount, totalPay
+        });
         router.push({
             pathname: '../modal_text_report', // Navigate to the /add_assignment route
         })
     };
 
-    const displayItem = ({ id, date, sessionMinutes, assignmentMinutes, paidMinutes }: StatisticsByDate) => (
+    const displayItem = ({ id, date, sessionMinutes, assignmentMinutes, paidMinutes,
+        assignmentCount, ratingSum, ratingCount, totalPay
+    }: StatisticsByDate) => (
         <TouchableOpacity
             style={styles.reportItem}
-            onPress={() => displayTextReport({ id, date, sessionMinutes, assignmentMinutes, paidMinutes })}
+            onPress={() => displayTextReport({
+                id, date, sessionMinutes, assignmentMinutes, paidMinutes,
+                assignmentCount, ratingSum, ratingCount, totalPay
+            })}
         >
-            {/*
-            <Text style={styles.text}>Time on paid assignment: {(paidMinutes / 60).toFixed()}h:{(paidMinutes % 60).toFixed()}m</Text>
-            <Text style={styles.text}>Time on assignment: {(assignmentMinutes / 60).toFixed()}h:{(assignmentMinutes % 60).toFixed()}m</Text>
-            <Text style={styles.text}>Time online {(sessionMinutes / 60).toFixed()}h:{(sessionMinutes % 60).toFixed()}m</Text>
-                */}
-            <Text style={styles.text}>
-                You made ${(17.20 * paidMinutes / 60).toFixed(2)} before expenses, which is...
-            </Text>
-            <Text style={styles.text}>
-                $17.20/hr of "engaged time"
-            </Text>
-            <Text style={styles.text}>
-                ${(17.20 * paidMinutes / assignmentMinutes).toFixed(2)}/hr on all assignments.
-            </Text>
-            <Text style={styles.text}>
-                ${(17.20 * paidMinutes / sessionMinutes).toFixed(2)}/hr online.
-            </Text>
+            <View style={styles.buttonPanel}>
+                {(ratingCount > 0) &&
+                    <Text style={styles.reportText}>
+                        Average rating: {(ratingSum / ratingCount).toFixed(1)}.
+                    </Text>}
+                <Text style={styles.reportText}>
+                    Total earnings: ${totalPay.toFixed(2)}, or...
+                </Text>
+                <Text style={styles.reportText}>
+                    ${(totalPay * 60.0 / paidMinutes).toFixed(2)}/hr for "engaged time"
+                </Text>
+                <Text style={styles.reportText}>
+                    ${(totalPay * 60.0 / assignmentMinutes).toFixed(2)}/hr over all assignments.
+                </Text>
+                <Text style={styles.reportText}>
+                    ${(totalPay * 60.0 / sessionMinutes).toFixed(2)}/hr online.
+                </Text>
+            </View>
+            <View style={styles.buttonPanel}>
+                <Ionicons name="caret-forward-outline" size={36} color="#66B2B2" />
+            </View>
+            {/* <Ionicons name="help-circle-outline" size={20} color="#66B2B2" />*/}
         </TouchableOpacity>
     );
 
@@ -194,11 +209,12 @@ const styles = StyleSheet.create({
     reportSection: {
         marginVertical: 8,
         paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#a0a0a0',
         backgroundColor: '#f6f6f6',
     },
     reportItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         paddingVertical: 8,
         paddingHorizontal: 16,
         marginHorizontal: 24,
@@ -213,6 +229,15 @@ const styles = StyleSheet.create({
             color: '#E0E0E0',
         }],
         elevation: 2
+    },
+    buttonPanel: {
+        paddingHorizontal: 8,
+        //backgroundColor: "#e0e0e0",
+    },
+    reportText: {
+        fontSize: 18,
+        marginTop: 8,
+        paddingHorizontal: 8,
     },
     text: {
         fontSize: 18,

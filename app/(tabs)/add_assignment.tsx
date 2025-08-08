@@ -20,13 +20,15 @@ import { timelineUtils } from '@/lib/timelineUtils';
 import { useUserContext } from '@/contexts/UserContext';
 
 export default function AddAssignment() {
-  const { userData, saveUserData, updateUserData, clearUserData, isLoading } = useUserContext();
+  const { userName, userData, updateUserData } = useUserContext();
   const [formAssignment, setFormAssignment] = useState<Assignment>({
-    owner: (userData && userData.username ? userData.username : ""),
+    owner: (userName && userName.username ? userName.username : ""),
     description: "",
     category: "Admin",
     startTime: null,
     endTime: null,
+    rating: null,
+    payRateFactor: 1.0,
   });
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
@@ -34,10 +36,10 @@ export default function AddAssignment() {
   const { assignmentID } = useLocalSearchParams<{ assignmentID: string }>();
   const isReturningFromNavigation = useRef(false);
 
-
   const handleInputChange = (field: string, value: string) => {
     if (value) {
       if (field == 'endTime') {
+        // endTime validation is a special case
         try {
           const valueDate = new Date(
             formAssignment.startTime ? formAssignment.startTime.getFullYear() : new Date().getFullYear(),
@@ -74,7 +76,9 @@ export default function AddAssignment() {
             description: activeAssignment.description,
             category: activeAssignment?.category,
             startTime: activeAssignment?.startTime,
-            endTime: activeAssignment?.endTime
+            endTime: activeAssignment?.endTime,
+            rating: activeAssignment.rating,
+            payRateFactor: activeAssignment.payRateFactor,
           });
         };
       }
@@ -96,8 +100,8 @@ export default function AddAssignment() {
   const addAssignment = async () => {
     // Close any open assignments
     try {
-      if (userData && userData.username) {
-        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
+      if (userName && userName.username) {
+        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userName.username);
       };
     } catch (e) {
       console.error('Error closing open assignments', e);
@@ -105,22 +109,24 @@ export default function AddAssignment() {
 
     // Add the new assignment
     try {
-      if (userData) {
+      if (userName) {
         const now: Date = new Date();
         const thirtyMinutesFromNow: Date = new Date(now.setMinutes(now.getMinutes() + 30));
         const activeAssignment: Assignment = {
-          owner: userData.username,
+          owner: userName.username,
           description: formAssignment.description,
           category: formAssignment.category,
           startTime: new Date(),
           endTime: thirtyMinutesFromNow,
+          rating: null,
+          payRateFactor: timelineUtils.assignPayRateFactor(formAssignment.category),
         };
-        console.log("Creating new assignment:", activeAssignment);
-        await firestoreService.createAssignment(Collection.assignment, activeAssignment);
-        updateUserData({ isOnAssignment: true });
+        const newAssignment: Assignment = await firestoreService.createAssignment(Collection.assignment, activeAssignment);
+        console.log("AddAssignment.addAssignment: created assignment id=", newAssignment.id);
+        await updateUserData({ assignmentID: newAssignment.id });
       };
     } catch (e) {
-      console.error('Error adding assignment: ', e);
+      console.error('AddAssignment.addAssignment: error creating assignment: ', e);
     };
     // Re-initialize the form data
     try {
@@ -130,6 +136,8 @@ export default function AddAssignment() {
         category: "",
         startTime: null,
         endTime: null,
+        rating: null,
+        payRateFactor: 1.0,
       });
       router.replace('/'); // Navigate to the Home Screen
     } catch (e) {
@@ -139,15 +147,17 @@ export default function AddAssignment() {
 
   const updateAssignment = async () => {
     try {
-      if (userData && formAssignment.endTime) {
-        const checkedTime = await timelineUtils.getValidEndTime(userData, formAssignment);
+      if (userName && formAssignment.endTime) {
+        const checkedTime = await timelineUtils.getValidEndTime(userName, formAssignment);
         const activeAssignment: Assignment = {
           id: formAssignment.id,
-          owner: userData.username,
+          owner: userName.username,
           description: formAssignment.description,
           category: formAssignment.category,
           startTime: formAssignment.startTime,
           endTime: checkedTime,
+          rating: null,
+          payRateFactor: 1.0,
         };
         await firestoreService.updateAssignment(Collection.assignment, activeAssignment);
       };
@@ -190,7 +200,18 @@ export default function AddAssignment() {
       } catch (e) {
         console.error('Error deleting assignment: ', e);
       };
-      router.back(); // Navigate to the place it was launched from 
+      const fromTimeline = formAssignment.endTime;
+      if (fromTimeline) {
+        // must have come from the timeline
+        isReturningFromNavigation.current = true;
+        // We navigated to this page from an edit. Clean the parameters before leaving.
+        // router.replace('/(tabs)/add_assignment');
+        router.replace('/(tabs)/timeline');
+      } else {
+        // go home
+        isReturningFromNavigation.current = false;
+        router.replace('/');
+      };
     };
   };
 
@@ -240,7 +261,7 @@ export default function AddAssignment() {
             </View>
 
             {/* End time picker for edits */}
-            {(userData && assignmentID && formAssignment.endTime) && (
+            {(userName && assignmentID && formAssignment.endTime) && (
               <View style={styles.formSection}>
                 <Text style={styles.label}>
                   This assignment is recorded as starting at {formAssignment.startTime?.toLocaleDateString('en-CA',

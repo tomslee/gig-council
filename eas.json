@@ -13,7 +13,11 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_EMAIL": "$EXPO_PUBLIC_FIREBASE_EMAIL",
+        "EXPO_PUBLIC_FIREBASE_PASSWORD": "$EXPO_PUBLIC_FIREBASE_PASSWORD"
+      }
     }
   },
   "submit": {
