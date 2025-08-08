@@ -101,7 +101,7 @@ export default function ReportScreen() {
             assignmentCount, ratingSum, ratingCount, totalPay
         });
         router.push({
-            pathname: '../modal_text_report', // Navigate to the /add_assignment route
+            pathname: '../modal_text_report', // Navigate to the modal text report
         })
     };
 

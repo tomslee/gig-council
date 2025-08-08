@@ -11,9 +11,12 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment } from '@/types/types';
 import { firestoreService } from '@/services/firestoreService';
 import { timelineUtils } from '@/lib/timelineUtils';
@@ -35,6 +38,7 @@ export default function AddAssignment() {
   const isFocused = useIsFocused();
   const { assignmentID } = useLocalSearchParams<{ assignmentID: string }>();
   const isReturningFromNavigation = useRef(false);
+  const insets = useSafeAreaInsets();
 
   const handleInputChange = (field: string, value: string) => {
     if (value) {
@@ -174,6 +178,8 @@ export default function AddAssignment() {
         category: "",
         startTime: null,
         endTime: null,
+        rating: null,
+        payRateFactor: 1.0,
       });
     } catch (e) {
       console.error('Error re-initializing form: ', e);
@@ -228,12 +234,28 @@ export default function AddAssignment() {
   */
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeAreaView}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView style={styles.scrollView}>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor="white"
+          translucent={false}
+          hidden={false}
+        />
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <Text style={styles.headerText}
+            onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={30} color="white" />
+          </Text>
+          <Text style={styles.headerText}>
+            Assignment
+          </Text>
+        </View>
+        <ScrollView style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}>
           <View style={styles.formContainer}>
 
             {/* Category picker */}
@@ -326,16 +348,36 @@ export default function AddAssignment() {
 
 
 const styles = StyleSheet.create({
-  container: {
+  safeAreaView: {
     flex: 1,
-    color: "#f8f9fa",
-    backgroundColor: '#f6f6f6',
+    backgroundColor: 'white',
   },
   keyboardAvoid: {
     flex: 1,
   },
+  header: {
+    //marginTop: 48,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    //backgroundColor: '#b2d8d8',
+    backgroundColor: '#66b2b2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  headerText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: 'white',
+  },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
   },
   formContainer: {
     flex: 1,

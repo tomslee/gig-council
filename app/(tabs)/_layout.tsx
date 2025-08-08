@@ -24,15 +24,6 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="add_assignment"
-                options={{
-                    title: 'Add Assignment',
-                    tabBarIcon: ({ color, focused }) => (
-                        <Ionicons name={focused ? 'add-circle-sharp' : 'add-circle-outline'} color={color} size={24} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="report"
                 options={{
                     title: 'Reports',

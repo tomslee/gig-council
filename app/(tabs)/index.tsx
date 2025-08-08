@@ -119,16 +119,17 @@ export default function HomeScreen() {
   }; // fetchAssignments
 
   const goToAddAssignment = () => {
-    router.navigate({
-      pathname: '/add_assignment', // Navigate to the /add_assignment route
+    router.push({
+      pathname: '../modal_assignment', // Navigate to the modal text report
       params: { assignmentID: null }
-    })
+    });
   };
 
   const openAssignmentForEdit = (id: string) => {
+    Assignment
     console.log("Opening assignment", id);
     router.push({
-      pathname: '/add_assignment', // Navigate to the /add_assignment route
+      pathname: '../modal_assignment', // Navigate to the /add_assignment route
       params: { assignmentID: id }
     })
   };
@@ -306,54 +307,56 @@ export default function HomeScreen() {
           )}
 
           {/* If there is an open assignment, diaplay it.*/}
-          {(userName && userName.username && userData?.assignmentID) && (
-            <View style={styles.formSection}>
-              {console.log("JSX: assignmentID=", userData.assignmentID, "docList length=", docList.length)}
-              <View style={styles.labelRow}>
-                <Text style={styles.label}>Current assignment...</Text>
-              </View>
-              <View style={styles.assignmentContainer}>
-                <TouchableOpacity
-                  onPress={() => openAssignmentForEdit(docList[docList.length - 1].id)} >
-                  <Text style={styles.listItemText}>
-                    Category: {docList[docList.length - 1].category}
-                  </Text>
-                  <Text style={styles.listItemText}>
-                    Description: {docList[docList.length - 1].description}
-                  </Text>
-                  {docList[docList.length - 1]["startTime"] && (
+          {(userName && userName.username &&
+            userData?.assignmentID &&
+            docList.length > 0) && (
+              <View style={styles.formSection}>
+                {console.log("JSX: assignmentID=", userData.assignmentID, "docList length=", docList.length)}
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Current assignment...</Text>
+                </View>
+                <View style={styles.assignmentContainer}>
+                  <TouchableOpacity
+                    onPress={() => openAssignmentForEdit(docList[docList.length - 1].id)} >
                     <Text style={styles.listItemText}>
-                      Started at {docList[docList.length - 1].startTime
-                        .toLocaleTimeString(undefined, {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                      Category: {docList[docList.length - 1].category}
                     </Text>
-                  )}
-                  {docList[docList.length - 1]["endTime"] && (
                     <Text style={styles.listItemText}>
-                      ...scheduled to finish at {docList[docList.length - 1].endTime
-                        .toLocaleTimeString(undefined, {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                      Description: {docList[docList.length - 1].description}
                     </Text>
-                  )}
-                  <Text style={styles.listItemText}>
-                    Your pay rate: ${(docList[docList.length - 1].payRateFactor ?
-                      (docList[docList.length - 1].payRateFactor! * MINIMUM_HOURLY_WAGE) : MINIMUM_HOURLY_WAGE)?.toFixed(2)}/hr.
-                  </Text>
-                </TouchableOpacity>
+                    {docList[docList.length - 1]["startTime"] && (
+                      <Text style={styles.listItemText}>
+                        Started at {docList[docList.length - 1].startTime
+                          .toLocaleTimeString(undefined, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                      </Text>
+                    )}
+                    {docList[docList.length - 1]["endTime"] && (
+                      <Text style={styles.listItemText}>
+                        ...scheduled to finish at {docList[docList.length - 1].endTime
+                          .toLocaleTimeString(undefined, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                      </Text>
+                    )}
+                    <Text style={styles.listItemText}>
+                      Your pay rate: ${(docList[docList.length - 1].payRateFactor ?
+                        (docList[docList.length - 1].payRateFactor! * MINIMUM_HOURLY_WAGE) : MINIMUM_HOURLY_WAGE)?.toFixed(2)}/hr.
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <View>
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={closeAssignments} >
+                    <Text style={styles.saveButtonText}>Close this assignment</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View>
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={closeAssignments} >
-                  <Text style={styles.saveButtonText}>Close this assignment</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+            )}
 
           {/* Start an assignment Button if there is no current assignment */}
           {(userName?.username && userData && userData.sessionID && !userData.assignmentID) ? (

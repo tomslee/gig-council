@@ -22,6 +22,13 @@ export default function RootLayout() {
               headerShown: false, // Optional: hide header for a truly full-screen experience
             }}
           />
+          <Stack.Screen
+            name="modal_assignment" // Name should match the file name (without .tsx)
+            options={{
+              presentation: 'modal',
+              headerShown: false, // Optional: hide header for a truly full-screen experience
+            }}
+          />
         </Stack>
       </StatisticsProvider>
     </UserContextProvider >

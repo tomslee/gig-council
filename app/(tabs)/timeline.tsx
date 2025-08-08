@@ -74,7 +74,7 @@ export default function TimelineScreen() {
 
     const openAssignmentForEdit = (id: string) => {
         router.replace({
-            pathname: '/(tabs)/add_assignment', // Navigate to the /add_assignment route
+            pathname: '../modal_assignment', // Navigate to the /add_assignment route
             params: { assignmentID: id }
         })
     };
