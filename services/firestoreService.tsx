@@ -15,7 +15,6 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { FIREBASE_AUTH, FIRESTORE_DB } from '@/lib/firebase';
 import { Assignment, Session } from '@/types/types';
 import { timelineUtils } from '@/lib/timelineUtils';
-
 const waitForAuth = (): Promise<User | null> => {
   return new Promise((resolve) => {
     const unsubscribe = onAuthStateChanged(FIREBASE_AUTH, (user) => {
@@ -47,6 +46,7 @@ export const firestoreService = {
       })) as Assignment[];
     } catch (error) {
       console.error('Error getting documents ', error);
+      return null;
     };
   },
 
@@ -76,6 +76,7 @@ export const firestoreService = {
         assignment.endTime > new Date());
     } catch (error) {
       console.error('Error getting assignments ', error);
+      return [];
     };
   },
 
@@ -165,6 +166,11 @@ export const firestoreService = {
       const endTime = new Date();
       // set the star rating
       const rating = timelineUtils.assignStarRating();
+      if (rating > 4.5) {
+        alert("Congratulations! You were given a rating of " + rating + " stars for this assignment.");
+      } else {
+        alert("Uh oh! You were given a rating of only " + rating + " stars for this assignment.");
+      }
       await updateDoc(docRef, {
         ...assignment,
         endTime: endTime,
@@ -238,6 +244,7 @@ export const firestoreService = {
   // Get all sessions owned by one user
   async getAllSessionsByOwner(collectionName: string, owner: string) {
     try {
+      console.log("getting sessions for owner", owner);
       const q = query(collection(FIRESTORE_DB, collectionName),
         where('owner', '==', owner));
       const snapshot = await getDocs(q);
@@ -249,6 +256,7 @@ export const firestoreService = {
       })) as Session[];
     } catch (error) {
       console.error('Error getting sessions ', error);
+      return [];
     };
   },
 
@@ -279,6 +287,7 @@ export const firestoreService = {
       return openSessions
     } catch (error) {
       console.error('Error getting open sessions ', error);
+      return [];
     };
   },
 
@@ -354,37 +363,3 @@ export const firestoreService = {
   },
 
 };
-
-// Example usage:
-/*
-// Get all users
-const users = await firestoreService.getAll('users');
-
-// Get user by ID
-const user = await firestoreService.getById('users', 'user123');
-
-// Query with filters
-const activeUsers = await firestoreService.queryWhere(
-  'users',
-  [{ field: 'status', operator: '==', value: 'active' }],
-  { field: 'createdAt', direction: 'desc' },
-  10
-);
-
-// Paginated query
-const result = await firestoreService.queryPaginated('posts', {
-  filters: [{ field: 'published', operator: '==', value: true }],
-  orderByField: { field: 'createdAt', direction: 'desc' },
-  limitCount: 5
-});
-
-// Real-time listener
-const unsubscribe = firestoreService.subscribe('users', (users) => {
-  console.log('Users updated:', users);
-}, {
-  filters: [{ field: 'status', operator: '==', value: 'active' }]
-});
-
-// Don't forget to unsubscribe when component unmounts
-// unsubscribe();
-*/

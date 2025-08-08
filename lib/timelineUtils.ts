@@ -1,25 +1,14 @@
 /*
  * A set of functions for ensuring appropriate start and end times for assignments and sessions
  */
-import { UserData, useUserContext } from '@/contexts/UserContext';
-//const [docList, setDocList] = useState<any>([]);
+import { UserName } from '@/contexts/UserContext';
 import { firestoreService } from '@/services/firestoreService';
 import {
     Assignment, AssignmentSection, Collection, CATEGORIES, CategoryInfo,
     MINIMUM_HOURLY_WAGE, PayReport, Session, StatisticsByDate, StatisticsSection
 } from '@/types/types';
 import 'react-native-get-random-values';
-import { executeNativeBackPress } from 'react-native-screens';
 import { v4 as uuidv4 } from 'uuid';
-
-class SessionInfo {
-    minutes: number;
-    sessions: number;
-    constructor(data: { minutes: number; sessions: number }) {
-        this.minutes = data.minutes;
-        this.sessions = data.sessions;
-    }
-};
 
 const createEmptyCategoryInfo = (): CategoryInfo => {
     return CATEGORIES.reduce((acc, category) => {
@@ -176,7 +165,7 @@ const groupStatisticsByDate = (assignments: Assignment[], sessions: Session[]):
 
 export const timelineUtils = {
 
-    async getReport(userData: UserData, earliestDate: Date = new Date('1970-01-01')) {
+    async getReport(userName: UserName, earliestDate: Date = new Date('1970-01-01')) {
         let docList = [];
         let newReport: PayReport = {
             totalSessions: 0,
@@ -198,7 +187,7 @@ export const timelineUtils = {
         try {
             const sessions = await firestoreService.getAllSessionsByOwner(
                 Collection.session,
-                userData.username);
+                userName.username);
             if (sessions) {
                 for (const session of sessions) {
                     if (session.startTime && session.startTime >= earliestDate) {
@@ -217,7 +206,7 @@ export const timelineUtils = {
             // fetch assignments
             const assignments = await firestoreService.getAllAssignmentsByOwner(
                 Collection.assignment,
-                userData.username);
+                userName.username);
             if (assignments) {
                 for (const assignment of assignments) {
                     if (assignment.category == '' ||
@@ -269,16 +258,16 @@ export const timelineUtils = {
         };
     },
 
-    async getValidEndTime(userData: UserData, candidateAssignment: Assignment) {
-        if (userData &&
-            userData.username &&
+    async getValidEndTime(userName: UserName, candidateAssignment: Assignment) {
+        if (userName &&
+            userName.username &&
             candidateAssignment.startTime &&
             candidateAssignment.endTime) {
             if (candidateAssignment.endTime <= candidateAssignment.startTime) {
                 // an assignment must end after it starts
                 candidateAssignment.endTime = new Date(candidateAssignment.startTime.getTime() + (10 * 60 * 1000));
             }
-            const assignments = await firestoreService.getAllAssignmentsByOwner(Collection.assignment, userData.username);
+            const assignments = await firestoreService.getAllAssignmentsByOwner(Collection.assignment, userName.username);
             if (assignments) {
                 for (const assignment of assignments) {
                     if (assignment.id != candidateAssignment.id &&
@@ -298,7 +287,7 @@ to avoid an overlap with another assignment. You can only work one assignment at
                 return candidateAssignment.endTime;
             };
         } else {
-            //Something is wrong with the candidateAssignment or the userData
+            //Something is wrong with the candidateAssignment or the userName
             return null;
         };
         return null;
@@ -306,23 +295,26 @@ to avoid an overlap with another assignment. You can only work one assignment at
 
     assignPayRateFactor(category: string | undefined): number {
         const thisCategory = CATEGORIES.find(item => item["label"] === category) || {};
+        let payFactor: number = 0;
         if ("label" in thisCategory && "payable" in thisCategory) {
             if (thisCategory["payable"]) {
                 const x = Math.floor(100.0 * Math.random());
                 switch (true) {
                     case (x < 74.5): // [0, 74] (75)
-                        return 0.9;
+                        payFactor = 0.9;
                         break;
                     case (x < 84.5): // [75, 84] (10)
-                        return 1.5; // surge
+                        payFactor = 1.5; // surge
                         break;
                     default:
-                        return 0.75; // [85, 99] (15)
+                        payFactor = 0.75; // [85, 99] (15)
                         break;
                 };
             } else {
                 return 0;
             };
+            alert("Your pay rate for this assignment has been set to $" + (payFactor * MINIMUM_HOURLY_WAGE).toFixed(2) + " per hour.");
+            return payFactor;
         } else {
             return 0;
         };

@@ -23,7 +23,7 @@ export default function ReportScreen() {
     const [loading, setLoading] = useState(true);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
-    const { userData } = useUserContext();
+    const { userName, userData } = useUserContext();
     const router = useRouter();
     const [docList, setDocList] = useState<any>([]);
     const { setCurrentStatistics } = useStatistics();
@@ -66,9 +66,9 @@ export default function ReportScreen() {
     useEffect(() => {
         // fetch the assignments for this user and construct the report
         const constructReport = async () => {
-            if (isFocused && userData) {
+            if (isFocused && userName) {
                 try {
-                    const newReport = await timelineUtils.getReport(userData, midnightLastNight);
+                    const newReport = await timelineUtils.getReport(userName, midnightLastNight);
                     if (newReport) {
                         setPayReport(newReport);
                         setRefresh(!refresh);

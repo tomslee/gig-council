@@ -1,10 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { Link } from 'expo-router';
 import { useIsFocused } from "@react-navigation/native";
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { UserData, useUserContext } from '../../contexts/UserContext';
+import { UserName, UserData, useUserContext } from '@/contexts/UserContext';
 import {
   Button,
   View,
@@ -17,14 +16,11 @@ import {
   Platform
 } from 'react-native';
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { FIREBASE_AUTH } from '@/lib/firebase';
+import { FIREBASE_AUTH } from "@/lib/firebase";
 import { firestoreService } from '@/services/firestoreService';
 import HelpIcon from '@/components/HelpIcon';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment, MINIMUM_HOURLY_WAGE, Session } from '@/types/types';
-import config from '@/config/env';
-import AssignmentItem from '@/components/AssignmentItem';
-import { doc } from 'firebase/firestore';
 
 // End of imports
 
@@ -32,70 +28,95 @@ import { doc } from 'firebase/firestore';
  * Home Screen
  */
 export default function HomeScreen() {
-  const [refresh, setRefresh] = useState(false);
+  //const [refresh, setRefresh] = useState(false);
   const [docList, setDocList] = useState<Assignment[]>([]);
   const [localUsername, setLocalUsername] = useState('');
   const router = useRouter();
   const isFocused = useIsFocused();
-  const { userData, loadUserData, saveUserData, updateUserData, isLoading } = useUserContext();
-  const [loading, setLoading] = useState<boolean>(false);
+  const { userName, userData,
+    loadUserName, loadUserData,
+    saveUserName, saveUserData,
+    updateUserName, updateUserData, isLoadingUser } = useUserContext();
+  const [isLoadingData, setLoadingData] = useState<boolean>(false);
+  const navigation = useNavigation();
+
+  console.log("HomeScreen: isLoadingData=", isLoadingData, ", isLoadingUser=", isLoadingUser);
+  // SignIn to Firebase and load userName on app start
+  useEffect(() => {
+    const startUp = async () => {
+      console.log("[] useEffect: signing in to Firebase on app start.");
+      // firebase sign in uses app-wide credentials
+      await signInWithEmailAndPassword(FIREBASE_AUTH,
+        process.env.EXPO_PUBLIC_FIREBASE_EMAIL,
+        process.env.EXPO_PUBLIC_FIREBASE_PASSWORD)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          console.log("[] useEffect: Firebase sign-in succeeded: user UID:", user.uid);
+        })
+        .catch((error) => {
+          // Handle errors during sign-in: network missing?
+          console.error("useEffect[] Firebase sign-in failed:", error);
+          alert("NickelNDimr could not reach the server. Are you sure you have internet?");
+        });
+      // Now load the userName: loadUserName also does a setUserName to make it available
+      // elsewhere. See the userName useEffect below.
+      await loadUserName();
+      await loadUserData();
+    };
+    startUp();
+  }, []);
 
   useEffect(() => {
-    setLoading(true);
-    const fetchSessionsAndAssignmentsForUser = async () => {
-      // Get any open assignments for the user
-      try {
-        setDocList([]);
-        console.log("loading userData on isFocused useEffect")
-        await loadUserData();
-        if (userData && userData.username) {
-          console.log("isFocused useEffect: userData.username", userData.username);
-          if (isFocused) {
-            const openSessions = await firestoreService.getAllOpenSessionsByOwner(Collection.session, userData.username);
-            if (userData.sessionID && openSessions && openSessions.length == 0) {
-              console.log("isFocused useEffect: local sessionID, but no open sessions");
-              await saveUserData({ ...userData, sessionID: '' });
-            }; // openSessions && userData.sessionID
-            if (openSessions && openSessions[0].id) {
-              console.log("isFocused useEffect: fetched an open session:", openSessions[0].id);
-              await saveUserData({ ...userData, sessionID: openSessions[0].id });
-            }; // openSessions && userData.sessionID
-            const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userData.username);
-            if (openAssignments) {
-              for (const assignment of openAssignments) {
-                docList.push(assignment)
-                console.log("Fetched open assignment", assignment.id);
-              };
-              console.log("isFocused useEffect: fetched", docList.length, "open assignments for", userData.username);
-            };
-            if (docList.length > 0) {
-              const activeAssignmentID = docList[0].id ? docList[0].id : '';
-              await saveUserData({
-                ...userData,
-                assignmentID: activeAssignmentID,
-              });
-            } else {
-              await saveUserData({
-                ...userData,
-                assignmentID: '',
-              });
-            };
-            setDocList(docList);
-            setRefresh(!refresh);
-          }; // if isFocused
-        } else {
-          console.log("fetchSessionsAndAssignmentsForUser: no userData.username.");
-        }; // if userData.username
-      } catch (error) {
-        console.error("HomeScreen.useEffect: error retrieving assignments:", error);
-      } finally {
-        setLocalUsername(userData ? userData.defaultUsername : '');
-        setLoading(false);
-        setRefresh(!refresh);
-      }; // try-catch
-    }; // fetchAssignmentsForUser
-    fetchSessionsAndAssignmentsForUser();
+    fetchSessionsAndAssignments();
+  }, [userName]);
+
+  useEffect(() => {
+    console.log("isFocused effect");
+    if (isFocused) {
+      console.log("isFocused useEffect");
+      fetchSessionsAndAssignments();
+    } else {
+      setLoadingData(true);
+    }
   }, [isFocused]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', () => {
+      // Reset loading state when leaving screen
+      console.log("navigation effect");
+      setLoadingData(true);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  const fetchSessionsAndAssignments = async () => {
+    setLoadingData(true);
+    try {
+      const docs = [];
+      console.log("fetchSessionsAndAssignments: userName=", userName?.username);
+      if (userName && userName.username) {
+        // setLocalUsername(userName.username);
+        const openSessions = await firestoreService.getAllOpenSessionsByOwner(Collection.session, userName.username);
+        const openSessionID = (openSessions.length > 0 && openSessions[0].id) ? openSessions[0].id : '';
+        console.log("fetchSessionsAndAssignments: fetched", openSessions.length, "open sessions for", userName.username);
+        const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userName.username);
+        const openAssignmentID = (openAssignments.length > 0 && openAssignments[0].id) ? openAssignments[0].id : '';
+        console.log("fetchSessionsAndAssignments: fetched", openAssignments.length, "open assignments for", userName.username);
+        for (const openAssignment of openAssignments) {
+          docs.push(openAssignment)
+        };
+        const fetchedUserData: UserData = { sessionID: openSessionID, assignmentID: openAssignmentID };
+        await saveUserData(fetchedUserData);
+        setDocList(docs);
+      } else {
+        console.log("fetchSessionsAndAssignments: no userName.username. Did not try to fetch any sessions or assignments.");
+      }; // if userData.username
+    } catch (error) {
+      console.error("fetchSessionsAndAssignments:", error);
+    } finally {
+      setLoadingData(false);
+    }; // try-catch
+  }; // fetchAssignments
 
   const goToAddAssignment = () => {
     router.navigate({
@@ -122,103 +143,76 @@ export default function HomeScreen() {
   };
 
   /*
-  onAuthStateChanged(FIREBASE_AUTH, (user) => {
-    if (user) {
-      // Anonymous user is signed in, see docs for a list of available properties
-      // https://firebase.google.com/docs/reference/js/auth.user
-      const uid = user.uid;
-      // console.log("Status changed for anonymous user " + user.uid);
-      // ...
-    } else {
-      // Anonymous user is signed out of Firebase
-      console.log("Firebase auth state changed: not authenticated");
-    }
-  });
-  */
-
-
-  /*
    * Login management
    */
   // To save a username
-  const appSignIn = async (): Promise<void> => {
+  const appSignIn = async (username: string) => {
     try {
-      if (userData) {
-        setLoading(true);
-        console.log("HomeScreen.appSignIn: signing in to Firebase.");
-        await signInWithEmailAndPassword(FIREBASE_AUTH, process.env.EXPO_PUBLIC_FIREBASE_EMAIL, process.env.EXPO_PUBLIC_FIREBASE_PASSWORD)
-          .then((userCredential) => {
-            const user = userCredential.user;
-            console.log("Firebase sign-in succeeded: user UID:", user.uid);
-            // You can now use the 'user' object for further operations
-          })
-          .catch((error) => {
-            // Handle errors during sign-in
-            console.error("Firebase sign-in failed:", error);
-          });
-        loadUserData();
-        setDocList([]);
-        // firebaseSignIn has already happened
-        // await firebaseSignIn();
-        const trimmedUsername = localUsername.trim();
-        if (!trimmedUsername) {
+      setLoadingData(true);
+      if (userName) {
+        const finalUsername = username || userName?.previousUsername || '';
+        const docs = [];
+        const trimmedUsername = finalUsername.trim();
+        if (trimmedUsername) {
+          const tempUsername: UserName = { username: trimmedUsername, previousUsername: trimmedUsername };
+          saveUserName(tempUsername);
+        } else {
           alert("Please type a username to sign in. ");
-          saveUserData(userData);
-          setLoading(false);
           return;
         }
         await firestoreService.closeAllSessionsForOwner(Collection.session, trimmedUsername);
+        //TS: I don't know what's going on here
+        const newUserName: UserName = {
+          username: userName ? userName.username : '',
+          previousUsername: '',
+        }
         const newUserData: UserData = {
-          username: trimmedUsername,
-          defaultUsername: trimmedUsername,
           sessionID: '',
           assignmentID: '',
         };
         const newSession: Session = {
-          owner: newUserData.username,
+          owner: newUserName.username,
           startTime: null,
           endTime: null
         };
         const session = await firestoreService.createSession(Collection.session, newSession);
-        const assignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, newUserData.username);
+        const assignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, newUserName.username);
         if (assignments) {
           for (const assignment of assignments) {
-            docList.push(assignment)
+            docs.push(assignment)
             console.log("Fetching ", assignment.id,
               ", ", assignment.description,
               ", ", assignment.category,
               ", ", assignment.startTime);
           };
-          console.log("HomeScreen.appSignIn: fetched", docList.length, "open assignments for", newUserData.username, ".");
-          setDocList(docList);
+          console.log("HomeScreen.appSignIn: fetched", docs.length, "open assignments for", newUserName.username, ".");
+          setDocList(docs);
           // Now save the userData with the proper settings, for later 
-          if (docList.length > 0 && docList[0].id) {
-            await saveUserData({
-              ...newUserData,
+          if (docs.length > 0 && docs[0].id) {
+            await updateUserData({
               sessionID: session.id,
-              assignmentID: docList[0].id,
+              assignmentID: docs[0].id,
             });
           } else {
-            await saveUserData({
-              ...newUserData,
+            await updateUserData({
               sessionID: session.id,
               assignmentID: '',
             });
           }
         };
-        setRefresh(!refresh);
-        setLoading(false);
-        console.log("Signed in", newUserData.username, "to session", session.id);
+        console.log("Signed in", newUserName.username, "to session", session.id);
       }
     } catch (error) {
       console.error('Error signing in:', error);
+    } finally {
+      setLoadingData(false);
     };
   };
 
   const closeAssignments = async () => {
     try {
-      if (userData && userData.username) {
-        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
+      if (userName && userName.username) {
+        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userName.username);
         await updateUserData({ assignmentID: '' });
         setDocList([]);
         console.log("All assignments closed");
@@ -229,29 +223,31 @@ export default function HomeScreen() {
   };
 
   const appSignOut = async () => {
-    setLoading(true);
+    setLoadingData(true);
     console.log("In appSignOut")
     try {
       setDocList([]);
-      if (userData) {
-        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userData.username);
-        await firestoreService.closeAllSessionsForOwner(Collection.session, userData.username);
+      console.log("appSignOut: userName=", userName);
+      if (userName) {
+        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userName.username);
+        await firestoreService.closeAllSessionsForOwner(Collection.session, userName.username);
         await firebaseSignOut();
-        await updateUserData({ username: "", sessionID: "" });
-        console.log(userData.username, 'signed out of application.');
+        console.log(userName.username, 'signed out of application.');
+        await updateUserName({ username: '' });
+        await updateUserData({ sessionID: '' });
       };
     } catch (error) {
       console.error('Error signing out:', error);
     } finally {
-      setLoading(false);
+      setLoadingData(false);
     }
 
   };
 
-  if (loading) {
+  if (isLoadingUser || isLoadingData) {
     return (
       <View style={styles.safeAreaContainer}>
-        <Text style={styles.text}>Loading data ...</Text>
+        <Text style={styles.text}>Loading user or data ...</Text>
       </View>
     )
   };
@@ -266,25 +262,24 @@ export default function HomeScreen() {
         <View style={styles.formContainer}>
           {/* Welcome banner */}
           <View style={styles.formSection}>
-            {(userData && userData.username && userData.sessionID) ? (
+            {(userName && userName.username && userData && userData.sessionID) ? (
               <View style={styles.bannerSection}>
-                <Text style={styles.bannerText}>Thank you for taking part in the RideFair Gig Work Challenge, {userData.username}.</Text>
+                <Text style={styles.bannerText}>Thank you for taking part in the RideFair Gig Work Challenge, {userName.username}.</Text>
                 <Link style={styles.bannerText} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
                 </Link>
               </View>
-            ) : null}
-            {(userData && !userData.sessionID) ? (
+            ) : (
               <View style={styles.bannerSection}>
                 <Text style={styles.bannerText}>Welcome to the RideFair Gig Work Challenge.</Text>
                 <Text style={styles.bannerText} >Please choose a name and sign in.</Text>
                 <Link style={styles.bannerText} href="/modal_gig_challenge">Read more <Ionicons name="chevron-forward" size={20} />
                 </Link>
               </View>
-            ) : null}
+            )}
           </View>
 
-          {/* Sign in section */}
-          {(userData && !userData.sessionID) ? (
+          {/* App sign in section if no username or if no open session*/}
+          {(userName && (!userName?.username || !userData?.sessionID)) && (
             <View style={styles.formSection}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Sign in:</Text>
@@ -297,23 +292,23 @@ export default function HomeScreen() {
                 style={styles.textInput}
                 onChangeText={setLocalUsername}
                 value={localUsername}
-                placeholder={(userData.defaultUsername) ? userData.defaultUsername : "Type a user name..."}
-                defaultValue={userData.defaultUsername}
+                placeholder={(userName.previousUsername) ? userName.previousUsername : "Type a user name..."}
+                defaultValue={userName.previousUsername}
                 id="id-set-user-name"
               />
               <TouchableOpacity
                 style={styles.saveButton}
-                onPress={appSignIn}
+                onPress={() => appSignIn(localUsername)}
               >
                 <Text style={styles.saveButtonText}>Sign In</Text>
               </TouchableOpacity>
             </View>
-          ) : null}
+          )}
 
-          {/* diaplay open assignments */}
-          {(userData && userData.username && userData.sessionID && docList && docList.length > 0) ? (
+          {/* If there is an open assignment, diaplay it.*/}
+          {(userName && userName.username && userData?.assignmentID) && (
             <View style={styles.formSection}>
-              {/* console.log("Started at ", docList[docList.length - 1]["startTime"].toDate().toLocaleTimeString()) */}
+              {console.log("JSX: assignmentID=", userData.assignmentID, "docList length=", docList.length)}
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Current assignment...</Text>
               </View>
@@ -321,10 +316,10 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   onPress={() => openAssignmentForEdit(docList[docList.length - 1].id)} >
                   <Text style={styles.listItemText}>
-                    Category: {docList[docList.length - 1]["category"]}
+                    Category: {docList[docList.length - 1].category}
                   </Text>
                   <Text style={styles.listItemText}>
-                    Description: {docList[docList.length - 1]["description"]}
+                    Description: {docList[docList.length - 1].description}
                   </Text>
                   {docList[docList.length - 1]["startTime"] && (
                     <Text style={styles.listItemText}>
@@ -358,10 +353,10 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          ) : null}
+          )}
 
-          {/* Start an assignment Button */}
-          {(userData && userData.sessionID && !userData.assignmentID) ? (
+          {/* Start an assignment Button if there is no current assignment */}
+          {(userName?.username && userData && userData.sessionID && !userData.assignmentID) ? (
             <View style={styles.formSection}>
               <Text style={styles.bannerText} >You are online and available for work assignments.</Text>
               <TouchableOpacity
@@ -377,7 +372,7 @@ export default function HomeScreen() {
           ) : null}
 
           {/* Sign out Button */}
-          {userData && userData.sessionID ? (
+          {(userName?.username && userData && userData.sessionID) && (
             <View style={styles.formSection}>
               <TouchableOpacity
                 style={styles.saveButton}
@@ -391,7 +386,7 @@ export default function HomeScreen() {
               <Text style={styles.comment}>You will be signed out automatically at 5pm,
                 or one hour after you signed in, whichever is later.</Text>
             </View>
-          ) : null}
+          )}
 
         </View>
       </KeyboardAvoidingView>

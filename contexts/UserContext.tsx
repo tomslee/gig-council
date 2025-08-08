@@ -1,27 +1,34 @@
 /*
  * User Context holds the UserData structure and makes it available to various screens. 
  */
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import config from '@/config/env';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { FIREBASE_AUTH } from "@/lib/firebase";
 import * as SecureStore from 'expo-secure-store';
 import CrossPlatformStorage from '@/components/CrossPlatformStorage';
 
-export interface UserData {
+export interface UserName {
   username: string,
-  defaultUsername: string,
+  previousUsername: string,
+};
+
+export interface UserData {
   sessionID: string,
   assignmentID: string,
 };
 
 interface UserContextType {
+  userName: UserName | null;
   userData: UserData | null;
+  loadUserName: () => Promise<void>;
   loadUserData: () => Promise<void>;
-  saveUserData: (data: UserData) => Promise<void>;
+  saveUserName: (userName: UserName) => Promise<void>;
+  saveUserData: (userData: UserData) => Promise<void>;
+  updateUserName: (updates: Partial<UserName>) => Promise<void>;
   updateUserData: (updates: Partial<UserData>) => Promise<void>;
+  clearUserName: () => Promise<void>;
   clearUserData: () => Promise<void>;
-  isLoading: boolean;
+  isLoadingUser: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -31,65 +38,77 @@ interface UserContextProviderProps {
 }
 
 export const UserContextProvider: React.FC<UserContextProviderProps> = ({ children }) => {
+  const [userName, setUserName] = useState<UserName | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-  // SignIn to Firebase and load userData on app start
-  useEffect(() => {
-    const signIn = async () => {
-      console.log("Signing in to Firebase on app start.");
-      await signInWithEmailAndPassword(FIREBASE_AUTH, process.env.EXPO_PUBLIC_FIREBASE_EMAIL, process.env.EXPO_PUBLIC_FIREBASE_PASSWORD)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          console.log("Firebase sign-in succeeded: user UID:", user.uid);
-          // You can now use the 'user' object for further operations
-        })
-        .catch((error) => {
-          // Handle errors during sign-in
-          console.error("Firebase sign-in failed:", error);
-        });
-      // console.log("Loading userData on app start.")
-      // await loadUserData();
+  const loadUserName = async () => {
+    /*
+     * On first App Start, there should no username or previousUsername.
+     * On later App Start:
+     * - if the user logged out and then closed the app, there should be a 
+     *   previousUsername, but not a username.
+     * - if the user closed the app without logging out, there may be a 
+     *   previousUsername and a username.
+     */
+    try {
+      const storedPreviousUsername = await CrossPlatformStorage.getItem("_previousUsername");
+      const storedUsername = await CrossPlatformStorage.getItem("_username");
+      // we are logged in. set the userName for use elsewhere.
+      const userName: UserName = {
+        username: storedUsername ? storedUsername : '',
+        previousUsername: storedPreviousUsername ? storedPreviousUsername : "",
+      }
+      setUserName(userName);
+    } catch (error) {
+      console.error('Error loading userName:', error);
+    } finally {
+      setIsLoadingUser(false);
     };
-    signIn();
-  }, []);
+  };
 
   const loadUserData = async () => {
     try {
-      const storedUsername = "";
-      const storedDefaultUsername = await CrossPlatformStorage.getItem("_defaultUsername");
       const storedSessionID = await CrossPlatformStorage.getItem("_sessionID");
       const storedAssignmentID = await CrossPlatformStorage.getItem("_assignmentID");
-      const updatedUserData: UserData = {
-        username: storedDefaultUsername ? storedDefaultUsername : "",
-        defaultUsername: storedDefaultUsername ? storedDefaultUsername : "",
+      const userData: UserData = {
         sessionID: storedSessionID ? storedSessionID : "",
         assignmentID: storedAssignmentID ? storedAssignmentID : "",
       }
-      setUserData(updatedUserData);
+      setUserData(userData);
     } catch (error) {
       console.error('Error loading userData:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
+  const saveUserName = async (newUserName: UserName) => {
+    try {
+      await CrossPlatformStorage.setItem('_username', newUserName.username);
+      await CrossPlatformStorage.setItem('_previousUsername', newUserName.previousUsername);
+      setUserName(newUserName);
+    } catch (error) {
+      console.error('Error saving userName:', error);
+    }
+  };
+
+
   const saveUserData = async (newUserData: UserData) => {
     try {
-      /*
-      await SecureStore.setItemAsync('_username', newUserData.username);
-      await SecureStore.setItemAsync('_defaultUsername', newUserData.defaultUsername);
-      await SecureStore.setItemAsync('_sessionID', newUserData.sessionID);
-      */
-      await CrossPlatformStorage.setItem('_username', newUserData.username);
-      await CrossPlatformStorage.setItem('_defaultUsername', newUserData.defaultUsername);
       await CrossPlatformStorage.setItem('_sessionID', newUserData.sessionID);
       await CrossPlatformStorage.setItem('_assignmentID', newUserData.assignmentID);
-
       setUserData(newUserData);
     } catch (error) {
-      console.error('Error saving username:', error);
+      console.error('Error saving userData:', error);
     }
+  };
+
+  const updateUserName = async (updates: Partial<UserName>): Promise<void> => {
+    if (!userName) {
+      throw new Error('No user name to update');
+    }
+    const updatedName: UserName = { ...userName, ...updates };
+    await saveUserName(updatedName);
+    setUserName(updatedName);
   };
 
   const updateUserData = async (updates: Partial<UserData>): Promise<void> => {
@@ -101,10 +120,18 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
     setUserData(updatedData);
   };
 
-  const clearUserData = async () => {
+  const clearUserName = async () => {
     try {
       await SecureStore.deleteItemAsync('_username');
-      await SecureStore.deleteItemAsync('_defaultUsername');
+      await SecureStore.deleteItemAsync('_previousUsername');
+      setUserName(null);
+    } catch (error) {
+      console.error('Error clearing userName:', error);
+    }
+  };
+
+  const clearUserData = async () => {
+    try {
       await SecureStore.deleteItemAsync('_sessionID');
       await SecureStore.deleteItemAsync('_assignmentID');
       setUserData(null);
@@ -114,12 +141,17 @@ export const UserContextProvider: React.FC<UserContextProviderProps> = ({ childr
   };
 
   const value: UserContextType = {
+    userName,
+    loadUserName,
     userData,
     loadUserData,
+    saveUserName,
     saveUserData,
+    updateUserName,
     updateUserData,
+    clearUserName,
     clearUserData,
-    isLoading
+    isLoadingUser,
   };
 
   return (

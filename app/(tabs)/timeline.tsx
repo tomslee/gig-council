@@ -22,7 +22,7 @@ export default function TimelineScreen() {
     const [loading, setLoading] = useState(true);
     const [refresh, setRefresh] = useState(false);
     const isFocused = useIsFocused();
-    const { userData } = useUserContext();
+    const { userName, userData } = useUserContext();
     const router = useRouter();
 
     function convertMinutesToHoursAndMinutes(totalMinutes: number): { hours: number; minutes: number } {
@@ -55,9 +55,9 @@ export default function TimelineScreen() {
     useEffect(() => {
         // fetch the assignments for this user and construct the report
         const constructReport = async () => {
-            if (isFocused && userData) {
+            if (isFocused && userName) {
                 try {
-                    const newReport = await timelineUtils.getReport(userData);
+                    const newReport = await timelineUtils.getReport(userName);
                     if (newReport) {
                         setPayReport(newReport);
                         setRefresh(!refresh);
