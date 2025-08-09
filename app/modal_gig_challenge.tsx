@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ReadMore() {
-    const isPresented = router.canGoBack();
     const insets = useSafeAreaInsets();
 
     return (
@@ -29,7 +28,8 @@ export default function ReadMore() {
                         The RideFair Gig Challenge
                     </Text>
                 </View>
-                <ScrollView style={styles.scrollview} contentContainerStyle={styles.scrollContent}>
+                <ScrollView style={styles.scrollview}
+                    contentContainerStyle={styles.scrollContent}>
                     <Text style={styles.paragraph}>
                         What if you worked your current job as a gig worker? You would be paid only
                         when "engaged" on an assignment, and you would be responsible for your

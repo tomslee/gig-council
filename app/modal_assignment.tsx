@@ -189,12 +189,13 @@ export default function AddAssignment() {
       // must have come from the timeline
       isReturningFromNavigation.current = true;
       // We navigated to this page from an edit. Clean the parameters before leaving.
-      // router.replace('/(tabs)/add_assignment');
-      router.replace('/(tabs)/timeline');
+      router.back();
+      //router.replace('/(tabs)/timeline');
     } else {
       // go home
       isReturningFromNavigation.current = false;
-      router.replace('/');
+      router.back();
+      // router.replace('/');
     };
   };
 
@@ -378,6 +379,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    justifyContent: 'space-evenly', // This evenly distributes the form elements
   },
   formContainer: {
     flex: 1,
@@ -394,7 +396,7 @@ const styles = StyleSheet.create({
   textInput: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e1e8ed',
+    borderColor: '#E0E0E0',
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,

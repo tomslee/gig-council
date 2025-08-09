@@ -29,6 +29,7 @@ export const firestoreService = {
   // Get all documents owned by one user
   async getAllAssignmentsByOwner(collectionName: string, owner: string) {
     try {
+      console.log("getting all assignments for owner", owner);
       // Wait for auth state to be definitely ready
       const currentUser = await waitForAuth();
       if (!currentUser) {
@@ -166,11 +167,13 @@ export const firestoreService = {
       const endTime = new Date();
       // set the star rating
       const rating = timelineUtils.assignStarRating();
+      /*
       if (rating > 4.5) {
         alert("Congratulations! You were given a rating of " + rating + " stars for this assignment.");
       } else {
         alert("Uh oh! You were given a rating of only " + rating + " stars for this assignment.");
       }
+        */
       await updateDoc(docRef, {
         ...assignment,
         endTime: endTime,
@@ -181,6 +184,7 @@ export const firestoreService = {
       return {
         ...assignment,
         endTime: endTime,
+        rating: rating,
       };
     } catch (error) {
       console.error(`Error closing assignment:`, error);
@@ -192,6 +196,7 @@ export const firestoreService = {
     try {
       // Wait for auth state to be definitely ready
       const currentUser = await waitForAuth();
+      let closedAssignment: Assignment | null = null;
       if (!currentUser) {
         throw new Error('Not authenticated');
       }
@@ -199,9 +204,12 @@ export const firestoreService = {
         collectionName, owner);
       if (openAssignments) {
         for (const openAssignment of openAssignments) {
-          await firestoreService.closeAssignment(
+          closedAssignment = await firestoreService.closeAssignment(
             collectionName, openAssignment);
         };
+        return closedAssignment;
+      } else {
+        return null;
       };
     } catch (e) {
       console.error(`Error closing assignment {docRef.id}: `, e);
@@ -244,7 +252,7 @@ export const firestoreService = {
   // Get all sessions owned by one user
   async getAllSessionsByOwner(collectionName: string, owner: string) {
     try {
-      console.log("getting sessions for owner", owner);
+      console.log("getting all sessions for owner", owner);
       const q = query(collection(FIRESTORE_DB, collectionName),
         where('owner', '==', owner));
       const snapshot = await getDocs(q);

@@ -21,6 +21,7 @@ import { firestoreService } from '@/services/firestoreService';
 import HelpIcon from '@/components/HelpIcon';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment, MINIMUM_HOURLY_WAGE, Session } from '@/types/types';
+import { useModal } from '@/contexts/ModalContext';
 
 // End of imports
 
@@ -39,47 +40,45 @@ export default function HomeScreen() {
     updateUserName, updateUserData, isLoadingUser } = useUserContext();
   const [isLoadingData, setLoadingData] = useState<boolean>(false);
   const navigation = useNavigation();
+  const { showModal } = useModal();
 
-  console.log("HomeScreen: isLoadingData=", isLoadingData, ", isLoadingUser=", isLoadingUser);
+  // console.log("HomeScreen: isLoadingData=", isLoadingData, ", isLoadingUser=", isLoadingUser);
   // SignIn to Firebase and load userName on app start
   useEffect(() => {
     const startUp = async () => {
-      console.log("[] useEffect: signing in to Firebase on app start.");
-      // firebase sign in uses app-wide credentials
-      await signInWithEmailAndPassword(FIREBASE_AUTH,
-        process.env.EXPO_PUBLIC_FIREBASE_EMAIL,
-        process.env.EXPO_PUBLIC_FIREBASE_PASSWORD)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          console.log("[] useEffect: Firebase sign-in succeeded: user UID:", user.uid);
-        })
-        .catch((error) => {
-          // Handle errors during sign-in: network missing?
-          console.error("useEffect[] Firebase sign-in failed:", error);
-          alert("NickelNDimr could not reach the server. Are you sure you have internet?");
-        });
+      console.log("useEffect[]: signing in to Firebase on app start.");
+      console.log('useEffect[]: navigation stack depth:', navigation.getState()?.history?.length);
+      await firebaseSignIn();
       // Now load the userName: loadUserName also does a setUserName to make it available
       // elsewhere. See the userName useEffect below.
-      await loadUserName();
       await loadUserData();
+      await loadUserName();
     };
     startUp();
+    return () => {
+      console.log('Component unmounting');
+    };
   }, []);
 
   useEffect(() => {
+    console.log("useEffect[userName]: userName=", userName);
+    console.log('useEffect[userName]: navigation stack depth:', navigation.getState()?.history?.length);
     fetchSessionsAndAssignments();
   }, [userName]);
 
   useEffect(() => {
-    console.log("isFocused effect");
+    console.log("useEffect[isFocused]: isFocused=", isFocused);
+    console.log('useEffect[isFocused]: navigation stack depth:', navigation.getState()?.history?.length);
     if (isFocused) {
-      console.log("isFocused useEffect");
       fetchSessionsAndAssignments();
+      // setLoadingData(false);
     } else {
+      // leaving?
       setLoadingData(true);
     }
   }, [isFocused]);
 
+  /*
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', () => {
       // Reset loading state when leaving screen
@@ -88,20 +87,22 @@ export default function HomeScreen() {
     });
     return unsubscribe;
   }, [navigation]);
+  */
 
   const fetchSessionsAndAssignments = async () => {
-    setLoadingData(true);
     try {
+      setLoadingData(true);
+      const callId = `fsa-${Math.random().toString(36).slice(2, 5)}`;
       const docs = [];
-      console.log("fetchSessionsAndAssignments: userName=", userName?.username);
+      console.log(callId, "userName=", userName?.username);
       if (userName && userName.username) {
         // setLocalUsername(userName.username);
         const openSessions = await firestoreService.getAllOpenSessionsByOwner(Collection.session, userName.username);
         const openSessionID = (openSessions.length > 0 && openSessions[0].id) ? openSessions[0].id : '';
-        console.log("fetchSessionsAndAssignments: fetched", openSessions.length, "open sessions for", userName.username);
+        console.log(callId, "fetched", openSessions.length, "open sessions for", userName.username);
         const openAssignments = await firestoreService.getAllOpenAssignmentsByOwner(Collection.assignment, userName.username);
         const openAssignmentID = (openAssignments.length > 0 && openAssignments[0].id) ? openAssignments[0].id : '';
-        console.log("fetchSessionsAndAssignments: fetched", openAssignments.length, "open assignments for", userName.username);
+        console.log(callId, "fetched", openAssignments.length, "open assignments for", userName.username);
         for (const openAssignment of openAssignments) {
           docs.push(openAssignment)
         };
@@ -109,16 +110,16 @@ export default function HomeScreen() {
         await saveUserData(fetchedUserData);
         setDocList(docs);
       } else {
-        console.log("fetchSessionsAndAssignments: no userName.username. Did not try to fetch any sessions or assignments.");
+        console.log("fsa: no userName.username, so did not fetch sessions or assignments.");
       }; // if userData.username
     } catch (error) {
-      console.error("fetchSessionsAndAssignments:", error);
+      console.error("fsa:", error);
     } finally {
       setLoadingData(false);
     }; // try-catch
   }; // fetchAssignments
 
-  const goToAddAssignment = () => {
+  const openAssignmentForCreate = () => {
     router.push({
       pathname: '../modal_assignment', // Navigate to the modal text report
       params: { assignmentID: null }
@@ -126,12 +127,31 @@ export default function HomeScreen() {
   };
 
   const openAssignmentForEdit = (id: string) => {
-    Assignment
     console.log("Opening assignment", id);
     router.push({
       pathname: '../modal_assignment', // Navigate to the /add_assignment route
       params: { assignmentID: id }
     })
+  };
+
+  const openModalWithContent = (content: string) => {
+    console.log("showModal, content=", content);
+    showModal(content);
+  };
+
+  const firebaseSignIn = async () => {
+    await signInWithEmailAndPassword(FIREBASE_AUTH,
+      process.env.EXPO_PUBLIC_FIREBASE_EMAIL,
+      process.env.EXPO_PUBLIC_FIREBASE_PASSWORD)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        console.log("useEffect[]: Firebase sign-in succeeded: user UID:", user.uid);
+      })
+      .catch((error) => {
+        // Handle errors during sign-in: network missing?
+        console.error("useEffect[] Firebase sign-in failed:", error);
+        openModalWithContent("NickelNDimr could not reach the server. Are you sure you have internet?");
+      });
   };
 
   const firebaseSignOut = async () => {
@@ -150,6 +170,8 @@ export default function HomeScreen() {
   const appSignIn = async (username: string) => {
     try {
       setLoadingData(true);
+      console.log("In appSignIn");
+      await firebaseSignIn();
       if (userName) {
         const finalUsername = username || userName?.previousUsername || '';
         const docs = [];
@@ -158,7 +180,7 @@ export default function HomeScreen() {
           const tempUsername: UserName = { username: trimmedUsername, previousUsername: trimmedUsername };
           saveUserName(tempUsername);
         } else {
-          alert("Please type a username to sign in. ");
+          openModalWithContent("Please type a username to sign in. ");
           return;
         }
         await firestoreService.closeAllSessionsForOwner(Collection.session, trimmedUsername);
@@ -213,7 +235,9 @@ export default function HomeScreen() {
   const closeAssignments = async () => {
     try {
       if (userName && userName.username) {
-        await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userName.username);
+        const closedAssignment = await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userName.username);
+        console.log("closedAssignment=", closedAssignment);
+        openModalWithContent("Congratulations!\nYou were rated " + closedAssignment?.rating + " stars for this assignment!");
         await updateUserData({ assignmentID: '' });
         setDocList([]);
         console.log("All assignments closed");
@@ -224,9 +248,9 @@ export default function HomeScreen() {
   };
 
   const appSignOut = async () => {
-    setLoadingData(true);
     console.log("In appSignOut")
     try {
+      setLoadingData(true);
       setDocList([]);
       console.log("appSignOut: userName=", userName);
       if (userName) {
@@ -364,7 +388,7 @@ export default function HomeScreen() {
               <Text style={styles.bannerText} >You are online and available for work assignments.</Text>
               <TouchableOpacity
                 style={styles.saveButton}
-                onPress={goToAddAssignment} >
+                onPress={openAssignmentForCreate} >
                 {docList.length > 0 ? (
                   <Text style={styles.saveButtonText}>Start a new assignment</Text>
                 ) : (
@@ -390,7 +414,6 @@ export default function HomeScreen() {
                 or one hour after you signed in, whichever is later.</Text>
             </View>
           )}
-
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView >

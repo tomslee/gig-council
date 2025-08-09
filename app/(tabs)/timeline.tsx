@@ -73,7 +73,7 @@ export default function TimelineScreen() {
     }, [isFocused]);
 
     const openAssignmentForEdit = (id: string) => {
-        router.replace({
+        router.push({
             pathname: '../modal_assignment', // Navigate to the /add_assignment route
             params: { assignmentID: id }
         })
