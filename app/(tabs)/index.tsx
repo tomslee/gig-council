@@ -22,6 +22,7 @@ import HelpIcon from '@/components/HelpIcon';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, Assignment, MINIMUM_HOURLY_WAGE, Session } from '@/types/types';
 import { useModal } from '@/contexts/ModalContext';
+import { ratingStrings } from '@/lib/stringResources';
 
 // End of imports
 
@@ -134,6 +135,13 @@ export default function HomeScreen() {
     })
   };
 
+  const openRatingModal = (rating: number) => {
+    const randomIndex = Math.floor(Math.random() * ratingStrings[rating].length);
+    const ratingString = ratingStrings[rating][randomIndex] + "! You were rated " + rating.toFixed() + " stars for this assignment.";
+    console.log("showModal, ratingString=", ratingString);
+    showModal(ratingString);
+  };
+
   const openModalWithContent = (content: string) => {
     console.log("showModal, content=", content);
     showModal(content);
@@ -237,7 +245,7 @@ export default function HomeScreen() {
       if (userName && userName.username) {
         const closedAssignment = await firestoreService.closeAllAssignmentsForOwner(Collection.assignment, userName.username);
         console.log("closedAssignment=", closedAssignment);
-        openModalWithContent("Congratulations!\nYou were rated " + closedAssignment?.rating + " stars for this assignment!");
+        openRatingModal(closedAssignment?.rating);
         await updateUserData({ assignmentID: '' });
         setDocList([]);
         console.log("All assignments closed");

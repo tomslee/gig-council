@@ -1,0 +1,28 @@
+export const ratingStrings: string[][] = [
+    ["Something is wrong here"],
+    ["That hurts",
+        "Ooof",
+        "You need some training"],
+    ["Very few of these are given",
+        "Are you OK?"
+    ],
+    ["It's all right for a movie or book, but not for a gig worker",
+        "We are looking for 4 and 5 stars, not this",
+    ],
+    ["OK",
+        "All right I guess",
+        "Five would be better",
+    ],
+    ["Congratulations",
+        "Well done",
+        "Kudos",
+        "Bravo",
+        "Great job",
+        "You did it",
+        "Cheers to you",
+        "Fantastic work",
+        "Way to go",
+        "You nailed it",
+        "I'm so proud of you"
+    ],
+];

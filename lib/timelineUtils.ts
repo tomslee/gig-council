@@ -313,7 +313,6 @@ to avoid an overlap with another assignment. You can only work one assignment at
             } else {
                 return 0;
             };
-            alert("Your pay rate for this assignment has been set to $" + (payFactor * MINIMUM_HOURLY_WAGE).toFixed(2) + " per hour.");
             return payFactor;
         } else {
             return 0;

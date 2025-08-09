@@ -17,10 +17,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Collection, Assignment } from '@/types/types';
+import { Collection, Assignment, MINIMUM_HOURLY_WAGE } from '@/types/types';
 import { firestoreService } from '@/services/firestoreService';
 import { timelineUtils } from '@/lib/timelineUtils';
 import { useUserContext } from '@/contexts/UserContext';
+import { useModal } from '@/contexts/ModalContext';
 
 export default function AddAssignment() {
   const { userName, userData, updateUserData } = useUserContext();
@@ -39,6 +40,7 @@ export default function AddAssignment() {
   const { assignmentID } = useLocalSearchParams<{ assignmentID: string }>();
   const isReturningFromNavigation = useRef(false);
   const insets = useSafeAreaInsets();
+  const { showModal } = useModal();
 
   const handleInputChange = (field: string, value: string) => {
     if (value) {
@@ -127,6 +129,9 @@ export default function AddAssignment() {
         };
         const newAssignment: Assignment = await firestoreService.createAssignment(Collection.assignment, activeAssignment);
         console.log("AddAssignment.addAssignment: created assignment id=", newAssignment.id);
+        showModal("Your algorithmically-optimized pay rate for this assignment is $" +
+          (activeAssignment.payRateFactor * MINIMUM_HOURLY_WAGE).toFixed(2) +
+          " per hour of engaged time.");
         await updateUserData({ assignmentID: newAssignment.id });
       };
     } catch (e) {

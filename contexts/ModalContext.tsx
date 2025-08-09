@@ -1,6 +1,7 @@
 // ModalProvider.tsx
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { View, Text, Modal, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import Modal from 'react-native-modal';
 
 interface ModalContextType {
     showModal: (content: string) => void;
@@ -41,14 +42,19 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
             {children}
             {/* The modal is rendered here at the provider level */}
             <Modal
-                animationType="slide"
+                animationIn={"slideInLeft"}
+                animationInTiming={500}
+                animationOut={"slideOutRight"}
+                animationOutTiming={500}
+                hasBackdrop={false}
+                onBackdropPress={() => setModalVisible(false)}
+                useNativeDriver={false}
                 transparent={true}
-                visible={modalVisible}
-                onRequestClose={hideModal}
+                isVisible={modalVisible}
             >
                 <View style={styles.modalRootView}>
                     <View style={styles.modalView}>
-                        <Text style={{ marginBottom: 15, fontSize: 16 }}>
+                        <Text style={styles.contentText}>
                             {modalContent}
                         </Text>
                         <Pressable
@@ -59,7 +65,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
                                 styles.button,
                             ]}
                             onPress={hideModal}>
-                            <Text>OK</Text>
+                            <Text style={styles.buttonText}>OK</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -73,19 +79,41 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)'
+        backgroundColor: 'rgba(0,0,0,0.0)'
     },
     modalView: {
-        backgroundColor: 'white',
-        padding: 20,
-        borderRadius: 10,
+        backgroundColor: '#ffffff',
+        padding: 16,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+        borderRadius: 12,
         minWidth: 250,
-        maxWidth: '80%'
+        maxWidth: '80%',
+        boxShadow: [{
+            color: '#E0E0E0',
+            offsetX: 2,
+            offsetY: 4,
+            blurRadius: 2,
+        }],
+        elevation: 8,
+    },
+    contentText: {
+        paddingVertical: 8,
+        fontSize: 18,
+        fontWeight: 500,
+        color: '#666666',
+    },
+    buttonText: {
+        //paddingVertical: 4,
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: 'white',
     },
     button: {
         backgroundColor: "#66B2B2",
         borderRadius: 12,
-        borderColor: '#117272',
+        borderWidth: 0,
+        borderColor: '#449191',
         paddingHorizontal: 8,
         paddingVertical: 16,
         alignItems: 'center',
