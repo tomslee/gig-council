@@ -2,7 +2,7 @@
   "expo": {
     "name": "gig-council",
     "slug": "gig-council",
-    "version": "0.4.2",
+    "version": "0.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "gig-council",
