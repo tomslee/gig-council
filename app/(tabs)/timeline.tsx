@@ -99,7 +99,11 @@ export default function TimelineScreen() {
                         { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}</Text>
                 )}
             {rating && (<Text style={styles.text}>Rating: {rating} stars</Text>)}
-            {<Text style={styles.text}>Pay rate: ${(payRateFactor ? payRateFactor * MINIMUM_HOURLY_WAGE : MINIMUM_HOURLY_WAGE).toFixed(2)}/hr</Text>}
+            {(payRateFactor > 0.1) ?
+                (<Text style={styles.text}>Pay rate: ${(payRateFactor ? payRateFactor * MINIMUM_HOURLY_WAGE : MINIMUM_HOURLY_WAGE).toFixed(2)}/hr</Text>)
+                :
+                (<Text style={styles.text}>Not payable</Text>)
+            }
         </TouchableOpacity>
     );
 

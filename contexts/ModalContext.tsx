@@ -1,5 +1,5 @@
 // ModalProvider.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Modal from 'react-native-modal';
 
@@ -26,6 +26,24 @@ interface ModalProviderProps {
 export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState('');
+    const AUTO_CLOSE_TIME = 2000; // 
+
+    useEffect(() => {
+        let timer: number;
+
+        if (modalVisible) {
+            timer = setTimeout(() => {
+                setModalVisible(false);
+            }, AUTO_CLOSE_TIME);
+        }
+
+        // Cleanup timer if modal is closed manually or component unmounts
+        return () => {
+            if (timer) {
+                clearTimeout(timer);
+            }
+        };
+    }, [modalVisible]);
 
     const showModal = (content: string) => {
         setModalContent(content);

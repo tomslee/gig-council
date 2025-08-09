@@ -129,9 +129,9 @@ export default function AddAssignment() {
         };
         const newAssignment: Assignment = await firestoreService.createAssignment(Collection.assignment, activeAssignment);
         console.log("AddAssignment.addAssignment: created assignment id=", newAssignment.id);
-        showModal("Your algorithmically-optimized pay rate for this assignment is $" +
+        showModal("Our algorithms have optimized your pay rate. You will be paid $" +
           (activeAssignment.payRateFactor * MINIMUM_HOURLY_WAGE).toFixed(2) +
-          " per hour of engaged time.");
+          " per hour of engaged time for this assignment.");
         await updateUserData({ assignmentID: newAssignment.id });
       };
     } catch (e) {
