@@ -367,9 +367,10 @@ export default function HomeScreen() {
                     )}
                     {docList[docList.length - 1]["endTime"] && (
                       <Text style={styles.listItemText}>
-                        .toLocaleTimeString(undefined, {
-                          hour: '2-digit',
-                        minute: '2-digit',
+                        ...scheduled to finish at {docList[docList.length - 1].startTime
+                          .toLocaleTimeString(undefined, {
+                            hour: '2-digit',
+                            minute: '2-digit',
                           })}
                       </Text>
                     )}

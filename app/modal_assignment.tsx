@@ -1,8 +1,10 @@
-import CategoryPicker from '@/components/CategoryPicker';
-import TimePicker from '@/components/TimePicker';
 import React, { useState, useEffect, useRef } from 'react';
 import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from "@react-navigation/native";
+import CategoryPicker from '@/components/CategoryPicker';
+import TimePicker from '@/components/TimePicker';
+import { notificationService } from '@/lib/notifications';
+
 import {
   View,
   Text,
@@ -113,6 +115,19 @@ export default function AddAssignment() {
       console.error('Error closing open assignments', e);
     }
 
+    // components/SomeComponent.tsx
+    const handleScheduleReminder = async (message: string) => {
+      const notificationId = await notificationService.scheduleReminder(
+        message,
+        "Your 2-minute reminder is here",
+        2
+      );
+      if (notificationId) {
+        console.log('Notification scheduled:', notificationId);
+        // Maybe store the ID if you want to cancel it later
+      }
+    };
+
     // Add the new assignment
     try {
       if (userName) {
@@ -133,6 +148,7 @@ export default function AddAssignment() {
           (activeAssignment.payRateFactor * MINIMUM_HOURLY_WAGE).toFixed(2) +
           " per hour of engaged time for this assignment.");
         await updateUserData({ assignmentID: newAssignment.id });
+        handleScheduleReminder("You have reached the scheduled end time for your current assignment.")
       };
     } catch (e) {
       console.error('AddAssignment.addAssignment: error creating assignment: ', e);
