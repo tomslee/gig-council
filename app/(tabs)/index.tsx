@@ -91,9 +91,9 @@ export default function HomeScreen() {
   */
 
   const fetchSessionsAndAssignments = async () => {
+    const callId = `fsa-${Math.random().toString(36).slice(2, 5)}`;
     try {
       setLoadingData(true);
-      const callId = `fsa-${Math.random().toString(36).slice(2, 5)}`;
       const docs = [];
       console.log(callId, "userName=", userName?.username);
       if (userName && userName.username) {
@@ -111,10 +111,10 @@ export default function HomeScreen() {
         await saveUserData(fetchedUserData);
         setDocList(docs);
       } else {
-        console.log("fsa: no userName.username, so did not fetch sessions or assignments.");
+        console.log(callId, "has no userName.username, so did not fetch sessions or assignments.");
       }; // if userData.username
     } catch (error) {
-      console.error("fsa:", error);
+      console.error(callId, ":", error);
     } finally {
       setLoadingData(false);
     }; // try-catch
@@ -367,10 +367,9 @@ export default function HomeScreen() {
                     )}
                     {docList[docList.length - 1]["endTime"] && (
                       <Text style={styles.listItemText}>
-                        ...scheduled to finish at {docList[docList.length - 1].endTime
-                          .toLocaleTimeString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit',
+                        .toLocaleTimeString(undefined, {
+                          hour: '2-digit',
+                        minute: '2-digit',
                           })}
                       </Text>
                     )}
