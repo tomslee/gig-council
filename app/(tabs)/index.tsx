@@ -367,17 +367,21 @@ export default function HomeScreen() {
                     )}
                     {docList[docList.length - 1]["endTime"] && (
                       <Text style={styles.listItemText}>
-                        ...scheduled to finish at {docList[docList.length - 1].startTime
+                        ...scheduled to finish at {docList[docList.length - 1].endTime
                           .toLocaleTimeString(undefined, {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                       </Text>
                     )}
-                    <Text style={styles.listItemText}>
-                      Your pay rate: ${(docList[docList.length - 1].payRateFactor ?
-                        (docList[docList.length - 1].payRateFactor! * MINIMUM_HOURLY_WAGE) : MINIMUM_HOURLY_WAGE)?.toFixed(2)}/hr.
-                    </Text>
+                    {(docList[docList.length - 1].payRateFactor) ?
+                      (<Text style={styles.listItemText}>
+                        Your pay rate:  ${(docList[docList.length - 1].payRateFactor! * MINIMUM_HOURLY_WAGE).toFixed(2)}/hr.
+                      </Text>
+                      ) :
+                      (<Text style={styles.listItemText}>
+                        No pay rate available for this assignment.
+                      </Text>)}
                   </TouchableOpacity>
                 </View>
                 <View>
@@ -409,6 +413,8 @@ export default function HomeScreen() {
           {/* Sign out Button */}
           {(userName?.username && userData && userData.sessionID) && (
             <View style={styles.formSection}>
+              <Text style={styles.comment}>You will be signed out automatically at 5pm,
+                or one hour after you signed in, whichever is later.</Text>
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={appSignOut} >
@@ -418,8 +424,6 @@ export default function HomeScreen() {
                   <Text style={styles.saveButtonText}>Sign out</Text>
                 )}
               </TouchableOpacity>
-              <Text style={styles.comment}>You will be signed out automatically at 5pm,
-                or one hour after you signed in, whichever is later.</Text>
             </View>
           )}
         </View>

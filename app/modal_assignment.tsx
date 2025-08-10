@@ -116,11 +116,12 @@ export default function AddAssignment() {
     }
 
     // components/SomeComponent.tsx
-    const handleScheduleReminder = async (message: string) => {
+    const handleScheduleReminder = async (title: string, body: string, date: Date) => {
       const notificationId = await notificationService.scheduleReminder(
-        message,
-        "Your 2-minute reminder is here",
-        2
+        title,
+        body,
+        date,
+        '/(tabs)/timeline',
       );
       if (notificationId) {
         console.log('Notification scheduled:', notificationId);
@@ -148,10 +149,15 @@ export default function AddAssignment() {
           (activeAssignment.payRateFactor * MINIMUM_HOURLY_WAGE).toFixed(2) +
           " per hour of engaged time for this assignment.");
         await updateUserData({ assignmentID: newAssignment.id });
-        handleScheduleReminder("You have reached the scheduled end time for your current assignment.")
+        const notificationTitle = "NickelNDimr notification";
+        const notificationBody = "You have reached the scheduled end time for your current assignment: " +
+          activeAssignment.description +
+          ". Press this notification to go to NicklNDimr and fix it, if needed.";
+        handleScheduleReminder(notificationTitle, notificationBody, thirtyMinutesFromNow);
       };
     } catch (e) {
       console.error('AddAssignment.addAssignment: error creating assignment: ', e);
+      t
     };
     // Re-initialize the form data
     try {

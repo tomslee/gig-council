@@ -5,9 +5,10 @@ import { Platform } from 'react-native';
 // Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowList: true,
   }),
 });
 
@@ -51,22 +52,31 @@ class NotificationService {
   async scheduleReminder(
     title: string = "Reminder!",
     body: string = "Don't forget to check back in!",
-    delayMinutes: number = 30
+    reminderDate: Date = new Date(),
+    screenPath?: string,
+    params?: Record<string, any>,
   ): Promise<string | null> {
     if (!this.isInitialized) {
       const initialized = await this.initialize();
       if (!initialized) return null;
     }
-
     try {
+      console.log("scheduleReminder: body=", body);
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body,
-          data: { type: 'reminder', scheduledAt: new Date().toISOString() },
+          data: {
+            type: 'reminder',
+            scheduledAt: new Date().toISOString(),
+            screen: screenPath,
+            params: params || {},
+          },
         },
-        trigger: {
-          seconds: delayMinutes * 60,
+        trigger: <Notifications.NotificationTriggerInput>{
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          // seconds: delayMinutes * 60,
+          date: reminderDate,
         },
       });
       return notificationId;

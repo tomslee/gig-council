@@ -26,7 +26,7 @@ interface ModalProviderProps {
 export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState('');
-    const AUTO_CLOSE_TIME = 2000; // 
+    const AUTO_CLOSE_TIME = 3000; // 
 
     useEffect(() => {
         let timer: number;
@@ -75,6 +75,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
                         <Text style={styles.contentText}>
                             {modalContent}
                         </Text>
+                        {/*
                         <Pressable
                             style={({ pressed }) => [
                                 {
@@ -85,6 +86,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
                             onPress={hideModal}>
                             <Text style={styles.buttonText}>OK</Text>
                         </Pressable>
+                        */}
                     </View>
                 </View>
             </Modal>
