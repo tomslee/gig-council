@@ -42,18 +42,22 @@ export default function HomeScreen() {
   const [isLoadingData, setLoadingData] = useState<boolean>(false);
   const navigation = useNavigation();
   const { showModal } = useModal();
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // console.log("HomeScreen: isLoadingData=", isLoadingData, ", isLoadingUser=", isLoadingUser);
   // SignIn to Firebase and load userName on app start
   useEffect(() => {
     const startUp = async () => {
-      console.log("useEffect[]: signing in to Firebase on app start.");
-      console.log('useEffect[]: navigation stack depth:', navigation.getState()?.history?.length);
-      await firebaseSignIn();
-      // Now load the userName: loadUserName also does a setUserName to make it available
-      // elsewhere. See the userName useEffect below.
-      await loadUserData();
-      await loadUserName();
+      if (!hasInitialized) {
+        console.log("useEffect[]: signing in to Firebase on app start.");
+        console.log('useEffect[]: navigation stack depth:', navigation.getState()?.history?.length);
+        await firebaseSignIn();
+        // Now load the userName: loadUserName also does a setUserName to make it available
+        // elsewhere. See the userName useEffect below.
+        await loadUserData();
+        await loadUserName();
+        setHasInitialized(true);
+      };
     };
     startUp();
     return () => {
@@ -62,14 +66,12 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    console.log("useEffect[userName]: userName=", userName);
-    console.log('useEffect[userName]: navigation stack depth:', navigation.getState()?.history?.length);
+    console.log("useEffect[userName]: userName=", userName, ', navigation stack depth=', navigation.getState()?.history?.length);
     fetchSessionsAndAssignments();
   }, [userName]);
 
   useEffect(() => {
-    console.log("useEffect[isFocused]: isFocused=", isFocused);
-    console.log('useEffect[isFocused]: navigation stack depth:', navigation.getState()?.history?.length);
+    console.log("useEffect[isFocused]: isFocused=", isFocused, ', navigation stack depth=', navigation.getState()?.history?.length);
     if (isFocused) {
       fetchSessionsAndAssignments();
       // setLoadingData(false);
